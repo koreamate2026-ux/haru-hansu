@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, type Account, type ApiHousehold } from '../lib/api';
 import { KEYS, load, save } from '../lib/storage';
 
@@ -31,6 +31,10 @@ const Ctx = createContext<AuthStateValue | null>(null);
 
 export function AuthStateProvider({ children }: { children: ReactNode }) {
   const [stored, setStored] = useState<StoredAuth | null>(() => load<StoredAuth | null>(KEYS.auth, null));
+  // signup() 직후 같은 함수 안에서 바로 createHousehold()를 부르는 경우, setStored로 예약된
+  // 상태가 아직 리렌더에 반영되지 않아 stored가 그대로 null로 보이는 문제가 있어 ref로 최신값을 유지한다
+  const storedRef = useRef(stored);
+  storedRef.current = stored;
   const [households, setHouseholds] = useState<ApiHousehold[]>([]);
   const [currentHouseholdId, setCurrentHouseholdId] = useState<string | null>(() => load<string | null>(KEYS.currentHouseholdId, null));
   const [loading, setLoading] = useState(false);
@@ -73,6 +77,7 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
       try {
         const result = await fn();
         setStored(result);
+        storedRef.current = result;
         save(KEYS.auth, result);
         await refreshHouseholds(result.token);
         return true;
@@ -103,12 +108,13 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
 
   const createHousehold = useCallback(
     async (name: string) => {
-      if (!stored) return false;
+      const current = storedRef.current;
+      if (!current) return false;
       setLoading(true);
       setError(null);
       try {
-        const created = await api.createHousehold(name, stored.token);
-        await refreshHouseholds(stored.token);
+        const created = await api.createHousehold(name, current.token);
+        await refreshHouseholds(current.token);
         setCurrentHousehold(created.id);
         return true;
       } catch (e) {
@@ -118,7 +124,7 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     },
-    [stored, refreshHouseholds, setCurrentHousehold],
+    [refreshHouseholds, setCurrentHousehold],
   );
 
   const value: AuthStateValue = {

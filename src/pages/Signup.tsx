@@ -57,7 +57,9 @@ export default function Signup() {
         setError('가입에 실패했어요. 처음부터 다시 시도해 주세요.');
         return;
       }
-      await createHousehold(`${name.trim()}의 가족`);
+      if (!(await createHousehold(`${name.trim()}의 가족`))) {
+        setError('가족 그룹을 만들지 못했어요. 설정에서 다시 시도해 주세요.');
+      }
       navigate('/profile', { replace: true });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : '인증번호 확인에 실패했어요.');
