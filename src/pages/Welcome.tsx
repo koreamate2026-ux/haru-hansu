@@ -2,11 +2,13 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { BallRow } from '../components/LottoBall';
 import { Body, Button, Screen } from '../components/ui';
 import { useApp } from '../state/AppState';
+import { useAuth } from '../state/AuthState';
 
 export default function Welcome() {
   const navigate = useNavigate();
   const { profiles } = useApp();
-  if (profiles.length > 0) return <Navigate to="/" replace />;
+  const { account } = useAuth();
+  if (profiles.length > 0 || account) return <Navigate to="/" replace />;
 
   return (
     <Screen>
@@ -30,7 +32,10 @@ export default function Welcome() {
       </div>
 
       <Button label="내 정보 입력하기" onPress={() => navigate('/profile')} />
-      <p className="notice" style={{ marginTop: 16, textAlign: 'center' }}>
+      <button type="button" className="link" style={{ display: 'block', textAlign: 'center', width: '100%', marginTop: 16 }} onClick={() => navigate('/settings')}>
+        이미 가족 계정이 있으신가요? 로그인
+      </button>
+      <p className="notice" style={{ marginTop: 8, textAlign: 'center' }}>
         이 숫자는 재미로 보는 참고용이에요. 어떤 숫자를 고르든 확률은 똑같아요. 입력한 정보는 이 브라우저에만 저장돼요.
       </p>
     </Screen>

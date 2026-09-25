@@ -11,12 +11,15 @@ import TicketNew from './pages/TicketNew';
 import Tickets from './pages/Tickets';
 import Welcome from './pages/Welcome';
 import { AppStateProvider, useApp } from './state/AppState';
-import { AuthStateProvider } from './state/AuthState';
+import { AuthStateProvider, useAuth } from './state/AuthState';
 
-/** 등록된 사람이 없으면 첫 화면으로 */
+/** 등록된 사람도 없고 로그인도 안 했으면 첫 화면으로. 로그인은 했는데 아직 서버에서
+ * 받아온 사람이 없으면(새 가족 그룹 등) 통과시키고, 설정 탭은 로그인하러 갈 수 있게 항상 열어 둔다 */
 function TabsLayout() {
   const { profiles } = useApp();
-  if (profiles.length === 0) return <Navigate to="/welcome" replace />;
+  const { account } = useAuth();
+  const { pathname } = useLocation();
+  if (profiles.length === 0 && !account && pathname !== '/settings') return <Navigate to="/welcome" replace />;
   return (
     <>
       <Outlet />
