@@ -81,8 +81,14 @@ export interface ApiTicket {
 }
 
 export const api = {
-  signup: (email: string, password: string, displayName: string) =>
-    request<AuthResult>('/auth/signup', { method: 'POST', body: JSON.stringify({ email, password, displayName }) }),
+  requestPhoneOtp: (phone: string) =>
+    request<{ ok: true; devCode?: string }>('/auth/phone/request', { method: 'POST', body: JSON.stringify({ phone }) }),
+
+  verifyPhoneOtp: (phone: string, code: string) =>
+    request<{ verifyToken: string }>('/auth/phone/verify', { method: 'POST', body: JSON.stringify({ phone, code }) }),
+
+  signup: (email: string, password: string, displayName: string, phone: string, verifyToken: string) =>
+    request<AuthResult>('/auth/signup', { method: 'POST', body: JSON.stringify({ email, password, displayName, phone, verifyToken }) }),
 
   login: (email: string, password: string) =>
     request<AuthResult>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),

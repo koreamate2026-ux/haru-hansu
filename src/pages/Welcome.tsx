@@ -31,7 +31,10 @@ export default function Welcome() {
         </p>
       </div>
 
-      <Button label="내 정보 입력하기" onPress={() => navigate('/profile')} />
+      <div className="stack">
+        <Button label="내 정보 입력하기" onPress={() => navigate('/profile')} />
+        <Button label="휴대폰 인증하고 가족 계정 만들기" kind="secondary" onPress={() => navigate('/signup')} />
+      </div>
       <button type="button" className="link" style={{ display: 'block', textAlign: 'center', width: '100%', marginTop: 16 }} onClick={() => navigate('/settings')}>
         이미 가족 계정이 있으신가요? 로그인
       </button>

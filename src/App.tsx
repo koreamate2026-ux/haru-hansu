@@ -6,6 +6,7 @@ import DrawEntry from './pages/DrawEntry';
 import Profile from './pages/Profile';
 import Saju from './pages/Saju';
 import Settings from './pages/Settings';
+import Signup from './pages/Signup';
 import ThisWeek from './pages/ThisWeek';
 import TicketNew from './pages/TicketNew';
 import Tickets from './pages/Tickets';
@@ -51,6 +52,7 @@ export default function App() {
                 <Route path="settings" element={<Settings />} />
               </Route>
               <Route path="welcome" element={<Welcome />} />
+              <Route path="signup" element={<Signup />} />
               <Route path="profile" element={<Profile />} />
               <Route path="ticket-new" element={<TicketNew />} />
               <Route path="draw-entry/:round" element={<DrawEntry />} />

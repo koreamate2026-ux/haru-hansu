@@ -20,7 +20,7 @@ interface AuthStateValue {
   setCurrentHousehold: (id: string | null) => void;
   loading: boolean;
   error: string | null;
-  signup: (email: string, password: string, displayName: string) => Promise<boolean>;
+  signup: (email: string, password: string, displayName: string, phone: string, verifyToken: string) => Promise<boolean>;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   createHousehold: (name: string) => Promise<boolean>;
@@ -87,7 +87,8 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
   );
 
   const signup = useCallback(
-    (email: string, password: string, displayName: string) => runAuth(() => api.signup(email, password, displayName)),
+    (email: string, password: string, displayName: string, phone: string, verifyToken: string) =>
+      runAuth(() => api.signup(email, password, displayName, phone, verifyToken)),
     [runAuth],
   );
 

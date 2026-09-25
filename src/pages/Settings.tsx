@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Body, Button, Screen, Section, Segmented, Title } from '../components/ui';
+import { Body, Button, Screen, Section, Title } from '../components/ui';
 import { DEFAULT_DRAW_API } from '../lib/draws';
 import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
 
 function FamilySync() {
-  const { account, households, currentHouseholdId, setCurrentHousehold, loading, error, signup, login, logout, createHousehold, clearError } =
-    useAuth();
+  const navigate = useNavigate();
+  const { account, households, currentHouseholdId, setCurrentHousehold, loading, error, login, logout, createHousehold } = useAuth();
   const { synced } = useApp();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [householdName, setHouseholdName] = useState('');
 
   if (account) {
@@ -85,10 +83,7 @@ function FamilySync() {
   }
 
   const submit = async () => {
-    const ok = mode === 'login' ? await login(email.trim(), password) : await signup(email.trim(), password, displayName.trim());
-    if (ok) {
-      setPassword('');
-    }
+    if (await login(email.trim(), password)) setPassword('');
   };
 
   return (
@@ -96,30 +91,7 @@ function FamilySync() {
       <Body dim small style={{ marginBottom: 12 }}>
         계정을 만들면 여러 기기에서 같은 가족 그룹을 볼 수 있어요. 만들지 않아도 이 브라우저에서는 지금처럼 계속 쓸 수 있어요.
       </Body>
-      <div style={{ marginBottom: 12 }}>
-        <Segmented
-          value={mode}
-          onChange={(v) => {
-            setMode(v);
-            clearError();
-          }}
-          options={[
-            { value: 'login', label: '로그인' },
-            { value: 'signup', label: '계정 만들기' },
-          ]}
-        />
-      </div>
       <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
-        {mode === 'signup' ? (
-          <input
-            className="input small-text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="이름"
-            maxLength={20}
-            aria-label="이름"
-          />
-        ) : null}
         <input
           className="input small-text"
           type="email"
@@ -135,7 +107,7 @@ function FamilySync() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="비밀번호 (8자 이상)"
+          placeholder="비밀번호"
           aria-label="비밀번호"
         />
       </div>
@@ -144,11 +116,10 @@ function FamilySync() {
           {error}
         </Body>
       ) : null}
-      <Button
-        label={loading ? '처리 중…' : mode === 'login' ? '로그인' : '계정 만들기'}
-        onPress={submit}
-        disabled={loading || !email.trim() || !password || (mode === 'signup' && !displayName.trim())}
-      />
+      <Button label={loading ? '처리 중…' : '로그인'} onPress={submit} disabled={loading || !email.trim() || !password} />
+      <button type="button" className="link" style={{ display: 'block', textAlign: 'center', width: '100%', marginTop: 12 }} onClick={() => navigate('/signup')}>
+        계정이 없으신가요? 휴대폰 인증으로 가입하기
+      </button>
     </Section>
   );
 }
