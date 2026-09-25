@@ -44,6 +44,35 @@ export interface ApiHousehold {
   role?: 'owner' | 'member';
 }
 
+export interface ApiPerson {
+  id: string;
+  householdId: string;
+  name: string;
+  calendar: 'solar' | 'lunar';
+  leapMonth: boolean;
+  birthYear: number;
+  birthMonth: number;
+  birthDay: number;
+  birthHour: number | null;
+  birthMinute: number;
+  bloodType: 'A' | 'B' | 'O' | 'AB' | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ApiPersonInput = Omit<ApiPerson, 'id' | 'householdId' | 'createdAt' | 'updatedAt'>;
+
+export interface ApiTicket {
+  id: string;
+  category: string;
+  round: number;
+  numbers: number[];
+  source: 'saju' | 'manual';
+  createdAt: string;
+  personIds: string[];
+  personNames: string[];
+}
+
 export const api = {
   signup: (email: string, password: string, displayName: string) =>
     request<AuthResult>('/auth/signup', { method: 'POST', body: JSON.stringify({ email, password, displayName }) }),
@@ -55,4 +84,26 @@ export const api = {
 
   createHousehold: (name: string, token: string) =>
     request<ApiHousehold>('/households', { method: 'POST', body: JSON.stringify({ name }) }, token),
+
+  listPersons: (householdId: string, token: string) => request<ApiPerson[]>(`/households/${householdId}/persons`, {}, token),
+
+  createPerson: (householdId: string, data: ApiPersonInput, token: string) =>
+    request<ApiPerson>(`/households/${householdId}/persons`, { method: 'POST', body: JSON.stringify(data) }, token),
+
+  updatePerson: (householdId: string, personId: string, data: Partial<ApiPersonInput>, token: string) =>
+    request<ApiPerson>(`/households/${householdId}/persons/${personId}`, { method: 'PATCH', body: JSON.stringify(data) }, token),
+
+  deletePerson: (householdId: string, personId: string, token: string) =>
+    request<void>(`/households/${householdId}/persons/${personId}`, { method: 'DELETE' }, token),
+
+  listTickets: (householdId: string, token: string) => request<ApiTicket[]>(`/households/${householdId}/tickets`, {}, token),
+
+  createTicket: (
+    householdId: string,
+    data: { category: string; round: number; numbers: number[]; source: 'saju' | 'manual'; personIds: string[] },
+    token: string,
+  ) => request<ApiTicket>(`/households/${householdId}/tickets`, { method: 'POST', body: JSON.stringify(data) }, token),
+
+  deleteTicket: (householdId: string, ticketId: string, token: string) =>
+    request<void>(`/households/${householdId}/tickets/${ticketId}`, { method: 'DELETE' }, token),
 };

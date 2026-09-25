@@ -4,8 +4,8 @@ import { KEYS, load, save } from '../lib/storage';
 
 /**
  * 가족과 계정으로 연동하는 기능(선택 사항). 로그인하지 않아도 앱은 지금처럼
- * 이 브라우저에만 저장되는 방식으로 완전히 동작한다. 로그인하면 서버의
- * 가족 그룹(Household)을 만들거나 볼 수 있다 — 사람·번호함 동기화는 다음 단계.
+ * 이 브라우저에만 저장되는 방식으로 완전히 동작한다. 로그인해서 가족 그룹을
+ * 고르면(currentHouseholdId), AppState가 사람·번호함을 그 그룹과 동기화한다.
  */
 interface StoredAuth {
   token: string;
@@ -14,7 +14,10 @@ interface StoredAuth {
 
 interface AuthStateValue {
   account: Account | null;
+  token: string | null;
   households: ApiHousehold[];
+  currentHouseholdId: string | null;
+  setCurrentHousehold: (id: string | null) => void;
   loading: boolean;
   error: string | null;
   signup: (email: string, password: string, displayName: string) => Promise<boolean>;
@@ -29,16 +32,33 @@ const Ctx = createContext<AuthStateValue | null>(null);
 export function AuthStateProvider({ children }: { children: ReactNode }) {
   const [stored, setStored] = useState<StoredAuth | null>(() => load<StoredAuth | null>(KEYS.auth, null));
   const [households, setHouseholds] = useState<ApiHousehold[]>([]);
+  const [currentHouseholdId, setCurrentHouseholdId] = useState<string | null>(() => load<string | null>(KEYS.currentHouseholdId, null));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshHouseholds = useCallback(async (token: string) => {
-    try {
-      setHouseholds(await api.myHouseholds(token));
-    } catch {
-      // 목록을 못 가져와도 로그인 자체는 유지 (일시적인 네트워크 문제일 수 있음)
-    }
+  const setCurrentHousehold = useCallback((id: string | null) => {
+    setCurrentHouseholdId(id);
+    save(KEYS.currentHouseholdId, id);
   }, []);
+
+  const refreshHouseholds = useCallback(
+    async (token: string) => {
+      try {
+        const list = await api.myHouseholds(token);
+        setHouseholds(list);
+        // 고른 그룹이 없거나 더 이상 못 보는 그룹이면, 첫 번째 그룹을 자동으로 고른다
+        setCurrentHouseholdId((cur) => {
+          if (cur && list.some((h) => h.id === cur)) return cur;
+          const next = list[0]?.id ?? null;
+          save(KEYS.currentHouseholdId, next);
+          return next;
+        });
+      } catch {
+        // 목록을 못 가져와도 로그인 자체는 유지 (일시적인 네트워크 문제일 수 있음)
+      }
+    },
+    [],
+  );
 
   // 새로고침 뒤에도 로그인이 남아 있으면 가족 그룹 목록을 다시 받아온다
   useEffect(() => {
@@ -76,8 +96,9 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setStored(null);
     setHouseholds([]);
+    setCurrentHousehold(null);
     save(KEYS.auth, null);
-  }, []);
+  }, [setCurrentHousehold]);
 
   const createHousehold = useCallback(
     async (name: string) => {
@@ -85,8 +106,9 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
       try {
-        await api.createHousehold(name, stored.token);
+        const created = await api.createHousehold(name, stored.token);
         await refreshHouseholds(stored.token);
+        setCurrentHousehold(created.id);
         return true;
       } catch (e) {
         setError(e instanceof Error ? e.message : '알 수 없는 오류가 발생했어요.');
@@ -95,12 +117,15 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     },
-    [stored, refreshHouseholds],
+    [stored, refreshHouseholds, setCurrentHousehold],
   );
 
   const value: AuthStateValue = {
     account: stored?.account ?? null,
+    token: stored?.token ?? null,
     households,
+    currentHouseholdId,
+    setCurrentHousehold,
     loading,
     error,
     signup,

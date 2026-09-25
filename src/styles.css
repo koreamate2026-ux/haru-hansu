@@ -341,7 +341,7 @@ input { font: inherit; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* 설정 */
-.person { display: flex; align-items: center; background: var(--surface); border-radius: 14px; padding: 16px; gap: 16px; }
+.person { display: flex; align-items: center; width: 100%; background: var(--surface); border: 1px solid transparent; border-radius: 14px; padding: 16px; gap: 16px; }
 .person-main { flex: 1; text-align: left; border: 0; background: none; padding: 0; }
 .person-name { font-size: 16px; }
 .person-detail { color: var(--text-faint); font-size: 13px; margin-top: 2px; }

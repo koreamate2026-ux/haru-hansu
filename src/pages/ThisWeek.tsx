@@ -54,7 +54,7 @@ export default function ThisWeek() {
 
   const onReroll = (key: string) => setRolls((r) => ({ ...r, [key]: (r[key] ?? 0) + 1 }));
 
-  const onSaveTicket = (nums: number[]) => {
+  const onSaveTicket = (nums: number[], category: string) => {
     if (hasTicket(round, nums)) return;
     addTicket({
       id: newId(),
@@ -63,6 +63,7 @@ export default function ThisWeek() {
       round,
       numbers: nums,
       source: 'saju',
+      category,
       createdAt: Date.now(),
     });
     navigator.vibrate?.(30);
@@ -159,7 +160,7 @@ export default function ThisWeek() {
                 <>
                   <Button
                     label={hasTicket(round, open.nums) ? '번호함에 저장됨' : '번호함에 저장'}
-                    onPress={() => onSaveTicket(open.nums)}
+                    onPress={() => onSaveTicket(open.nums, open.key)}
                     disabled={hasTicket(round, open.nums)}
                     kind={hasTicket(round, open.nums) ? 'secondary' : 'primary'}
                   />

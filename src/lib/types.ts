@@ -32,6 +32,8 @@ export interface SavedTicket {
   round: number;
   numbers: number[];
   source: 'saju' | 'manual';
+  /** 어떤 근거로 뽑았는지 (zodiac·ohaeng·compat·star·blood·stone·dream·family·name·today·lucky·manual) */
+  category?: string;
   createdAt: number;
 }
 

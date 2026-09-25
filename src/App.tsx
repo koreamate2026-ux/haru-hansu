@@ -35,8 +35,8 @@ function ScrollToTop() {
 
 export default function App() {
   return (
-    <AppStateProvider>
-      <AuthStateProvider>
+    <AuthStateProvider>
+      <AppStateProvider>
         <HashRouter>
           <ScrollToTop />
           <div className="app">
@@ -56,7 +56,7 @@ export default function App() {
             </Routes>
           </div>
         </HashRouter>
-      </AuthStateProvider>
-    </AppStateProvider>
+      </AppStateProvider>
+    </AuthStateProvider>
   );
 }

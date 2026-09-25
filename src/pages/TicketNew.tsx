@@ -23,6 +23,7 @@ export default function TicketNew() {
       round,
       numbers: picked,
       source: 'manual',
+      category: 'manual',
       createdAt: Date.now(),
     });
     goBack();

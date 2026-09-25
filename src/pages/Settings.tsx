@@ -6,7 +6,9 @@ import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
 
 function FamilySync() {
-  const { account, households, loading, error, signup, login, logout, createHousehold, clearError } = useAuth();
+  const { account, households, currentHouseholdId, setCurrentHousehold, loading, error, signup, login, logout, createHousehold, clearError } =
+    useAuth();
+  const { synced } = useApp();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,14 +23,27 @@ function FamilySync() {
         </Body>
         {households.length ? (
           <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
-            {households.map((h) => (
-              <div key={h.id} className="person">
-                <div className="person-main">
-                  <div className="person-name">{h.name}</div>
-                  <div className="person-detail">{h.role === 'owner' ? '내가 만든 그룹' : '초대받은 그룹'}</div>
-                </div>
-              </div>
-            ))}
+            {households.map((h) => {
+              const on = h.id === currentHouseholdId;
+              return (
+                <button
+                  key={h.id}
+                  type="button"
+                  className="person"
+                  style={{ borderColor: on ? 'var(--gold)' : 'transparent', textAlign: 'left' }}
+                  onClick={() => setCurrentHousehold(h.id)}
+                  aria-pressed={on}
+                >
+                  <div className="person-main" style={{ pointerEvents: 'none' }}>
+                    <div className="person-name">
+                      {h.name}
+                      {on ? <span className="dim"> · 지금 쓰는 중</span> : null}
+                    </div>
+                    <div className="person-detail">{h.role === 'owner' ? '내가 만든 그룹' : '초대받은 그룹'}</div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         ) : (
           <Body dim small style={{ marginBottom: 12 }}>
@@ -61,7 +76,9 @@ function FamilySync() {
         ) : null}
         <Button label="로그아웃" kind="secondary" onPress={logout} />
         <Body dim small style={{ marginTop: 8 }}>
-          지금은 계정을 만들면 가족 그룹을 함께 만들 수 있어요. 사람·번호 자체를 서버와 동기화하는 기능은 준비 중이에요.
+          {synced
+            ? '지금 고른 가족 그룹과 사람·번호함이 서로 맞춰지고 있어요. 이 기기에서 추가·수정·삭제하면 서버에도 그대로 반영돼요.'
+            : '가족 그룹을 고르면 그때부터 사람·번호함이 서버와 맞춰져요.'}
         </Body>
       </Section>
     );
