@@ -59,3 +59,5 @@ public/fonts/           한자 부분 글꼴 (HanjaSerif, SIL OFL 1.1)
 scripts/verify-logic.ts 로직 검증
 docs/draw-proxy-worker.js  당첨번호 중계 서버 예시 (CORS 포함)
 ```
+
+<!-- Vercel 재배포 트리거: VITE_API_BASE 환경변수 반영 -->
