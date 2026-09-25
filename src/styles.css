@@ -240,6 +240,20 @@ input { font: inherit; }
 /* 카드 */
 .card { background: var(--surface); border-radius: 24px; padding: 20px; }
 
+.hero-main {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  margin-top: 20px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+}
+.hero-main:active { opacity: 0.85; }
+
 /* 이번 주 */
 .chips { display: flex; gap: 8px; overflow-x: auto; margin: 0 -20px 20px; padding: 0 20px; scrollbar-width: none; }
 .chips::-webkit-scrollbar { display: none; }

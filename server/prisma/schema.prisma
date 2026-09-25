@@ -91,6 +91,7 @@ model Person {
   household     Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
   dailyDreams   DailyDream[]
   ticketPersons TicketPerson[]
+  familyEvents  FamilyEvent[]
 
   @@map("persons")
 }
@@ -98,11 +99,13 @@ model Person {
 model FamilyEvent {
   id          String @id @default(uuid())
   householdId String
+  personId    String
   label       String
   month       Int
   day         Int
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  person    Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@map("family_events")
 }

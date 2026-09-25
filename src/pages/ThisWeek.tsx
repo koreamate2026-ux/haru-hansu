@@ -51,15 +51,22 @@ export default function ThisWeek() {
   // 오행 숫자 바로 다음에 가족 궁합 숫자를 끼워 넣는다
   const allCategories = [...categories.slice(0, 2), familyCat, ...categories.slice(2)];
   const open = allCategories.find((c) => c.key === openKey) ?? null;
+  // 오행 숫자를 오늘의 대표 숫자로 맨 위에 크게 보여준다 (그리드에서도 그대로 볼 수 있음)
+  const hero = allCategories.find((c) => c.key === 'ohaeng')!;
 
   const onReroll = (key: string) => setRolls((r) => ({ ...r, [key]: (r[key] ?? 0) + 1 }));
 
-  const onSaveTicket = (nums: number[], category: string) => {
+  const onSaveTicket = (nums: number[], category: string, personIds?: string[]) => {
     if (hasTicket(round, nums)) return;
+    const participants = personIds?.length ? personIds : [activeProfile.id];
+    const participantNames = personIds?.length
+      ? participants.map((id) => profiles.find((p) => p.id === id)?.name ?? '가족').join('·')
+      : activeProfile.name;
     addTicket({
       id: newId(),
-      profileId: activeProfile.id,
-      profileName: activeProfile.name,
+      profileId: participants[0],
+      profileIds: participants,
+      profileName: participantNames,
       round,
       numbers: nums,
       source: 'saju',
@@ -89,6 +96,16 @@ export default function ThisWeek() {
         <span className="chip on">{activeChart.animal}띠</span>
         {activeProfile.bloodType ? <span className="chip on">{activeProfile.bloodType}형</span> : null}
       </div>
+
+      <button type="button" className="card hero-main" onClick={() => setOpenKey('ohaeng')} aria-label="오늘의 대표 숫자 자세히 보기">
+        <span className="dim small">오늘의 대표 숫자</span>
+        <div className="sheet-number" style={{ padding: '10px 0' }}>
+          <LottoBall n={hero.nums[0]} size={80} />
+        </div>
+        <Body dim small style={{ margin: 0 }}>
+          {hero.story}
+        </Body>
+      </button>
 
       <div className="home-bar">
         <span className="dim small">그림을 눌러 숫자를 확인해요</span>
@@ -160,7 +177,7 @@ export default function ThisWeek() {
                 <>
                   <Button
                     label={hasTicket(round, open.nums) ? '번호함에 저장됨' : '번호함에 저장'}
-                    onPress={() => onSaveTicket(open.nums, open.key)}
+                    onPress={() => onSaveTicket(open.nums, open.key, open.personIds)}
                     disabled={hasTicket(round, open.nums)}
                     kind={hasTicket(round, open.nums) ? 'secondary' : 'primary'}
                   />

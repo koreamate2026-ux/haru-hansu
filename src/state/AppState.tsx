@@ -15,14 +15,10 @@ function todayKey(): string {
   return `${t.y}-${t.m}-${t.d}`;
 }
 
-/** 오늘 고른 꿈. 날짜가 바뀌면 '안 꿨어요'로 되돌아간다 */
-function initialDream(): DreamKey {
-  const saved = load<{ date: string; value: DreamKey } | null>(KEYS.dream, null);
-  return saved && saved.date === todayKey() ? saved.value : 'none';
-}
+type DreamMap = Record<string, { date: string; value: DreamKey }>;
 
-/** 서버의 Person을 앱이 쓰는 Profile 모양으로. 가족 기념일은 서버에 아직 없어서 로컬 값을 그대로 이어받는다 */
-function personToProfile(p: ApiPerson, keepFamilyEvents: Profile['familyEvents']): Profile {
+/** 서버의 Person을 앱이 쓰는 Profile 모양으로 */
+function personToProfile(p: ApiPerson): Profile {
   return {
     id: p.id,
     name: p.name,
@@ -34,7 +30,7 @@ function personToProfile(p: ApiPerson, keepFamilyEvents: Profile['familyEvents']
     hour: p.birthHour,
     minute: p.birthMinute,
     bloodType: p.bloodType,
-    familyEvents: keepFamilyEvents,
+    familyEvents: p.familyEvents,
     createdAt: new Date(p.createdAt).getTime(),
   };
 }
@@ -50,6 +46,7 @@ function profileToPersonInput(p: Profile): ApiPersonInput {
     birthHour: p.hour,
     birthMinute: p.minute,
     bloodType: p.bloodType,
+    familyEvents: p.familyEvents,
   };
 }
 
@@ -57,6 +54,7 @@ function apiTicketToLocal(t: ApiTicket): SavedTicket {
   return {
     id: t.id,
     profileId: t.personIds[0] ?? null,
+    profileIds: t.personIds,
     profileName: t.personNames.join('·') || '가족',
     round: t.round,
     numbers: t.numbers,
@@ -106,7 +104,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [tickets, setTickets] = useState<SavedTicket[]>(() => load<SavedTicket[]>(KEYS.tickets, []));
   const [draws, setDraws] = useState<Record<number, DrawResult>>(() => load<Record<number, DrawResult>>(KEYS.draws, {}));
   const [settings, setSettings] = useState<Settings>(() => ({ ...DEFAULT_SETTINGS, ...load<Partial<Settings>>(KEYS.settings, {}) }));
-  const [todayDream, setTodayDreamState] = useState<DreamKey>(initialDream);
+  const [dreamMap, setDreamMap] = useState<DreamMap>(() => load<DreamMap>(KEYS.dream, {}));
 
   const profilesRef = useRef(profiles);
   useEffect(() => {
@@ -114,6 +112,26 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [profiles]);
 
   const activeProfile = profiles.find((p) => p.id === activeId) ?? null;
+
+  /** 오늘 고른 꿈. 사람마다 따로 저장되고, 날짜가 바뀌면 '안 꿨어요'로 되돌아간다 */
+  const todayDream: DreamKey = useMemo(() => {
+    if (!activeProfile) return 'none';
+    const rec = dreamMap[activeProfile.id];
+    return rec && rec.date === todayKey() ? rec.value : 'none';
+  }, [activeProfile, dreamMap]);
+
+  const setTodayDream = useCallback(
+    (d: DreamKey) => {
+      if (!activeProfile) return;
+      setDreamMap((prev) => {
+        const next = { ...prev, [activeProfile.id]: { date: todayKey(), value: d } };
+        save(KEYS.dream, next);
+        return next;
+      });
+    },
+    [activeProfile],
+  );
+
   const activeChart = useMemo(() => {
     if (!activeProfile) return null;
     try {
@@ -128,7 +146,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     save(KEYS.activeProfileId, id);
   }, []);
 
-  /** 서버의 사람·번호함으로 로컬을 맞춘다 (서버가 기준). 가족 기념일만 로컬 값을 지킨다 */
+  /** 서버의 사람·번호함으로 로컬을 맞춘다 (서버가 기준) */
   const pullFromServer = useCallback(async () => {
     if (!token || !currentHouseholdId) return;
     try {
@@ -136,9 +154,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         api.listPersons(currentHouseholdId, token),
         api.listTickets(currentHouseholdId, token),
       ]);
-      const mapped = serverPersons.map((p) =>
-        personToProfile(p, profilesRef.current.find((x) => x.id === p.id)?.familyEvents ?? []),
-      );
+      const mapped = serverPersons.map(personToProfile);
       setProfiles(mapped);
       save(KEYS.profiles, mapped);
       setActiveId((cur) => {
@@ -240,7 +256,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               round: t.round,
               numbers: t.numbers,
               source: t.source,
-              personIds: t.profileId ? [t.profileId] : [],
+              personIds: t.profileIds ?? (t.profileId ? [t.profileId] : []),
             },
             token!,
           )
@@ -304,11 +320,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const setTodayDream = useCallback((d: DreamKey) => {
-    setTodayDreamState(d);
-    save(KEYS.dream, { date: todayKey(), value: d });
-  }, []);
-
   const resetAll = useCallback(() => {
     clearAll();
     setProfiles([]);
@@ -316,7 +327,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setTickets([]);
     setDraws({});
     setSettings(DEFAULT_SETTINGS);
-    setTodayDreamState('none');
+    setDreamMap({});
     // 서버와 동기화 중이었다면, 지운 자리에 서버 데이터를 다시 채운다
     if (synced) pullFromServer();
   }, [synced, pullFromServer]);

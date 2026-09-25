@@ -44,6 +44,12 @@ export interface ApiHousehold {
   role?: 'owner' | 'member';
 }
 
+export interface ApiFamilyEvent {
+  label: string;
+  month: number;
+  day: number;
+}
+
 export interface ApiPerson {
   id: string;
   householdId: string;
@@ -56,6 +62,7 @@ export interface ApiPerson {
   birthHour: number | null;
   birthMinute: number;
   bloodType: 'A' | 'B' | 'O' | 'AB' | null;
+  familyEvents: ApiFamilyEvent[];
   createdAt: string;
   updatedAt: string;
 }

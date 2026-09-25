@@ -29,6 +29,8 @@ export interface SavedTicket {
   id: string;
   profileId: string | null;
   profileName: string;
+  /** 여러 명이 함께 만든 번호(가족 궁합 등)일 때, 참여한 사람 전부의 id */
+  profileIds?: string[];
   round: number;
   numbers: number[];
   source: 'saju' | 'manual';

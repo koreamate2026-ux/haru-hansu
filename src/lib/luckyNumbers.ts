@@ -120,6 +120,8 @@ export interface LuckyCategory {
   empty?: boolean;
   /** 오늘의 꿈을 고르는 카테고리인지 */
   isDream?: boolean;
+  /** 여러 명이 함께 만든 번호(가족 궁합)일 때, 참여한 사람들의 id */
+  personIds?: string[];
 }
 
 /**
@@ -340,5 +342,5 @@ export function familyCompat(profiles: Profile[], opts: { todayKey: string; roll
   const w = ELEMENT_INFO[weakest[0]];
   const story = `${names} 님을 함께 보면 ${w.name}(${w.hanja}) 기운이 가장 부족해요. 그래서 오늘의 궁합 숫자로 ${w.name} 기운의 번호를 하나 골랐어요.`;
 
-  return { key, emoji, title, tag: names, nums, story };
+  return { key, emoji, title, tag: names, nums, story, personIds: members.map((m) => m.p.id) };
 }
