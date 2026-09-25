@@ -1,0 +1,37 @@
+# 하루 한수 전용 스택. 다른 프로젝트(wyd-backend, hansfamily, jugyeongyadok 등)와
+# 완전히 분리된 이름·네트워크·볼륨을 쓴다. Postgres는 호스트 포트를 열지 않고
+# 이 스택 안의 api 컨테이너만 내부 네트워크로 접속한다.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: haruhansu-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: haruhansu
+      POSTGRES_USER: haruhansu
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - haruhansu_pgdata:/var/lib/postgresql/data
+    networks: [haruhansu]
+
+  api:
+    build: .
+    container_name: haruhansu-api
+    restart: unless-stopped
+    depends_on: [postgres]
+    environment:
+      DATABASE_URL: postgresql://haruhansu:${POSTGRES_PASSWORD}@postgres:5432/haruhansu
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      PORT: 8095
+    ports:
+      - "127.0.0.1:8095:8095"
+    networks: [haruhansu]
+
+networks:
+  haruhansu:
+    name: haruhansu_default
+
+volumes:
+  haruhansu_pgdata:
+    name: haruhansu_pgdata

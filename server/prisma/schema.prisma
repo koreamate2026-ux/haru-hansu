@@ -1,0 +1,170 @@
+// 하루 한수 API — ERD 문서(설계서)의 to-be 구조를 그대로 옮긴 Prisma 스키마
+// household.md 문서 참고: Account, Household, Person 세 층으로 나눠 여러 사람이
+// 같은 가족 데이터를 공유할 수 있게 한다.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime @default(now())
+
+  memberships      HouseholdMember[]
+  ownedHouseholds  Household[]        @relation("HouseholdOwner")
+  createdTickets   SavedTicket[]
+
+  @@map("accounts")
+}
+
+model Household {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String
+  owner     Account  @relation("HouseholdOwner", fields: [ownerId], references: [id])
+  createdAt DateTime @default(now())
+
+  members       HouseholdMember[]
+  persons       Person[]
+  familyEvents  FamilyEvent[]
+  tickets       SavedTicket[]
+  settings      HouseholdSettings?
+
+  @@map("households")
+}
+
+enum MemberRole {
+  owner
+  member
+}
+
+model HouseholdMember {
+  id          String     @id @default(uuid())
+  householdId String
+  accountId   String
+  role        MemberRole @default(member)
+  joinedAt    DateTime   @default(now())
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([householdId, accountId])
+  @@map("household_members")
+}
+
+enum Calendar {
+  solar
+  lunar
+}
+
+enum BloodType {
+  A
+  B
+  O
+  AB
+}
+
+model Person {
+  id          String    @id @default(uuid())
+  householdId String
+  name        String
+  calendar    Calendar  @default(solar)
+  leapMonth   Boolean   @default(false)
+  birthYear   Int
+  birthMonth  Int
+  birthDay    Int
+  /// null이면 태어난 시간을 모름
+  birthHour   Int?
+  birthMinute Int       @default(0)
+  bloodType   BloodType?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  household     Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  dailyDreams   DailyDream[]
+  ticketPersons TicketPerson[]
+
+  @@map("persons")
+}
+
+model FamilyEvent {
+  id          String @id @default(uuid())
+  householdId String
+  label       String
+  month       Int
+  day         Int
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@map("family_events")
+}
+
+model DailyDream {
+  id       String @id @default(uuid())
+  personId String
+  /// YYYY-MM-DD (KST 기준)
+  date     String
+  dreamKey String
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([personId, date])
+  @@map("daily_dreams")
+}
+
+model SavedTicket {
+  id              String   @id @default(uuid())
+  householdId     String
+  /// zodiac | ohaeng | compat | star | blood | stone | dream | family | name | today | lucky | manual
+  category        String
+  round           Int
+  numbers         Int[]
+  source          String   @default("saju")
+  createdByAccountId String?
+  createdAt       DateTime @default(now())
+
+  household       Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  createdBy       Account?       @relation(fields: [createdByAccountId], references: [id])
+  ticketPersons   TicketPerson[]
+
+  @@map("saved_tickets")
+}
+
+model TicketPerson {
+  ticketId String
+  personId String
+
+  ticket SavedTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  person Person      @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@id([ticketId, personId])
+  @@map("ticket_persons")
+}
+
+model DrawResult {
+  round     Int      @id
+  date      String
+  numbers   Int[]
+  bonus     Int
+  source    String   @default("api")
+  fetchedAt DateTime @default(now())
+
+  @@map("draw_results")
+}
+
+model HouseholdSettings {
+  householdId String  @id
+  drawApiBase String  @default("")
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@map("household_settings")
+}

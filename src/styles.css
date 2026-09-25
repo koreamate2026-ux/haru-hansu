@@ -472,6 +472,7 @@ input { font: inherit; }
   from { transform: translateY(24px); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
+.sheet-number { display: flex; justify-content: center; padding: 4px 0; }
 .sheet-head { display: flex; align-items: center; gap: 10px; }
 .sheet-emoji { font-size: 1.7rem; line-height: 1; }
 .sheet-title { font-family: var(--font-display); font-weight: 700; font-size: 20px; margin: 0; }

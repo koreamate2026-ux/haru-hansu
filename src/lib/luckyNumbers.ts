@@ -1,10 +1,26 @@
-import { ELEMENT_INFO, ELEMENTS, numberElement, numbersOf } from './elements';
+import { ELEMENT_INFO, ELEMENTS, numbersOf } from './elements';
 import { hashString, seededRandom } from './random';
 import { computeChart, type SajuChart } from './saju';
 import type { Element, FamilyEvent, Profile } from './types';
 
 /** 12지지 순서 (子=0 쥐 ... 亥=11 돼지). 사주의 연지 글자를 이 순서로 찾아 띠 계산에 써요 */
 const BRANCH_ORDER = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+
+/** 띠 이모지. chart.animal(BRANCHES의 animal 문자열)로 바로 찾아 쓴다 */
+const ANIMAL_EMOJI: Record<string, string> = {
+  쥐: '🐭',
+  소: '🐮',
+  호랑이: '🐯',
+  토끼: '🐰',
+  용: '🐉',
+  뱀: '🐍',
+  말: '🐴',
+  양: '🐑',
+  원숭이: '🐵',
+  닭: '🐔',
+  개: '🐶',
+  돼지: '🐷',
+};
 
 const SIGNS = [
   { name: '물병자리', from: 120, to: 218, planet: '천왕성', n: 4 },
@@ -55,8 +71,8 @@ const series = (n: number, step: number): number[] => {
 };
 const uniq = (a: number[]) => [...new Set(a.filter((v) => v >= 1 && v <= 45))];
 
-/** primary를 우선 채우고, 모자라면 secondary로, 그래도 모자라면 무작위로 채워 6개를 만든다 */
-function pick6(primary: number[], secondary: number[], rand: () => number): number[] {
+/** primary를 우선 채우고, 모자라면 secondary로, 그래도 모자라면 무작위로 채워 count개를 만든다 */
+function pickNumbers(primary: number[], secondary: number[], rand: () => number, count = 1): number[] {
   const shuffle = (arr: number[]) => {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
@@ -65,10 +81,10 @@ function pick6(primary: number[], secondary: number[], rand: () => number): numb
     }
     return a;
   };
-  const res = shuffle(uniq(primary)).slice(0, 6);
+  const res = shuffle(uniq(primary)).slice(0, count);
   const rest = shuffle(uniq(secondary).filter((v) => !res.includes(v)));
-  while (res.length < 6 && rest.length) res.push(rest.shift()!);
-  while (res.length < 6) {
+  while (res.length < count && rest.length) res.push(rest.shift()!);
+  while (res.length < count) {
     const v = 1 + Math.floor(rand() * 45);
     if (!res.includes(v)) res.push(v);
   }
@@ -147,7 +163,7 @@ export function luckyCategories(
   const cats: (Omit<LuckyCategory, 'nums'> & { primary: number[]; secondary: number[] })[] = [
     {
       key: 'zodiac',
-      emoji: '🐉',
+      emoji: ANIMAL_EMOJI[chart.animal] ?? '🐾',
       title: '띠 숫자',
       tag: `${chart.animal}띠`,
       primary: series(order, 12),
@@ -276,13 +292,12 @@ export function luckyCategories(
   return cats.map((c) => {
     if (c.empty) return { ...c, nums: [] };
     const seed = hashString(`${todayKey}|${JSON.stringify(profile)}|${dream}|${c.key}|${rolls[c.key] ?? 0}|${globalRoll}`);
-    return { ...c, nums: pick6(c.primary, c.secondary, seededRandom(seed)) };
+    return { ...c, nums: pickNumbers(c.primary, c.secondary, seededRandom(seed)) };
   });
 }
 
 /**
- * 가족 궁합 숫자. 등록된 사람 모두(2명 이상)의 사주를 합쳐, 다 함께 가장 부족한 기운과
- * 각자에게 필요한 기운을 채운 6개를 뽑는다.
+ * 가족 궁합 숫자. 등록된 사람 모두(2명 이상)의 사주를 합쳐, 다 함께 가장 부족한 기운의 번호를 하나 뽑는다.
  */
 export function familyCompat(profiles: Profile[], opts: { todayKey: string; rolls: Record<string, number>; globalRoll: number }): LuckyCategory {
   const key = 'compat';
@@ -320,21 +335,10 @@ export function familyCompat(profiles: Profile[], opts: { todayKey: string; roll
   const names = members.map((m) => m.p.name).join('·');
   const seedKey = `${opts.todayKey}|compat|${JSON.stringify(members.map((m) => m.p))}|${opts.rolls[key] ?? 0}|${opts.globalRoll}`;
   const rand = seededRandom(hashString(seedKey));
-  let nums = pick6(primary, secondary, rand);
-
-  // 등록된 사람마다 자신에게 필요한 기운이 하나도 없으면 하나를 그 기운 번호로 바꾼다
-  const usefulEls = [...new Set(members.map((m) => m.chart.usefulElement))];
-  for (const el of usefulEls) {
-    if (nums.some((n) => numberElement(n) === el)) continue;
-    const candidates = numbersOf(el).filter((n) => !nums.includes(n));
-    if (!candidates.length) continue;
-    const idx = Math.floor(rand() * nums.length);
-    nums[idx] = candidates[Math.floor(rand() * candidates.length)];
-  }
-  nums = nums.sort((a, b) => a - b);
+  const nums = pickNumbers(primary, secondary, rand);
 
   const w = ELEMENT_INFO[weakest[0]];
-  const story = `${names} 님을 함께 보면 ${w.name}(${w.hanja}) 기운이 가장 부족해요. 그래서 ${w.name} 번호를 가장 많이 담았고, 각자에게 필요한 기운도 하나씩 챙겼어요.`;
+  const story = `${names} 님을 함께 보면 ${w.name}(${w.hanja}) 기운이 가장 부족해요. 그래서 오늘의 궁합 숫자로 ${w.name} 기운의 번호를 하나 골랐어요.`;
 
   return { key, emoji, title, tag: names, nums, story };
 }

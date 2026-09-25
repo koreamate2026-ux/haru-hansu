@@ -11,6 +11,7 @@ import TicketNew from './pages/TicketNew';
 import Tickets from './pages/Tickets';
 import Welcome from './pages/Welcome';
 import { AppStateProvider, useApp } from './state/AppState';
+import { AuthStateProvider } from './state/AuthState';
 
 /** 등록된 사람이 없으면 첫 화면으로 */
 function TabsLayout() {
@@ -35,25 +36,27 @@ function ScrollToTop() {
 export default function App() {
   return (
     <AppStateProvider>
-      <HashRouter>
-        <ScrollToTop />
-        <div className="app">
-          <Routes>
-            <Route element={<TabsLayout />}>
-              <Route index element={<ThisWeek />} />
-              <Route path="saju" element={<Saju />} />
-              <Route path="tickets" element={<Tickets />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-            <Route path="welcome" element={<Welcome />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="ticket-new" element={<TicketNew />} />
-            <Route path="draw-entry/:round" element={<DrawEntry />} />
-            <Route path="about" element={<About />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </HashRouter>
+      <AuthStateProvider>
+        <HashRouter>
+          <ScrollToTop />
+          <div className="app">
+            <Routes>
+              <Route element={<TabsLayout />}>
+                <Route index element={<ThisWeek />} />
+                <Route path="saju" element={<Saju />} />
+                <Route path="tickets" element={<Tickets />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
+              <Route path="welcome" element={<Welcome />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="ticket-new" element={<TicketNew />} />
+              <Route path="draw-entry/:round" element={<DrawEntry />} />
+              <Route path="about" element={<About />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </HashRouter>
+      </AuthStateProvider>
     </AppStateProvider>
   );
 }

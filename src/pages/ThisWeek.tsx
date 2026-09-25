@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BallRow } from '../components/LottoBall';
+import { LottoBall } from '../components/LottoBall';
 import { Body, Button, Screen, useToast } from '../components/ui';
 import { DREAMS, familyCompat, luckyCategories, type DreamKey } from '../lib/luckyNumbers';
 import { newId } from '../lib/random';
@@ -141,7 +141,9 @@ export default function ThisWeek() {
                 <Body dim>정보를 넣으면 이 숫자를 볼 수 있어요.</Body>
               </div>
             ) : (
-              <BallRow numbers={open.nums} size={40} />
+              <div className="sheet-number">
+                <LottoBall n={open.nums[0]} size={72} />
+              </div>
             )}
 
             <Body>{open.story}</Body>
