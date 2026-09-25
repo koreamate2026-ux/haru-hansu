@@ -44,6 +44,28 @@ curl 127.0.0.1:8095/api/health
 컨테이너 이름(`haruhansu-*`)과 네트워크(`haruhansu_default`), 볼륨(`haruhansu_pgdata`)을 모두
 접두사로 구분해서, 같은 VPS의 다른 프로젝트(wyd-backend, hansfamily, jugyeongyadok 등)와 겹치지
 않습니다. Postgres는 호스트 포트를 열지 않고 컨테이너 안에서만 접속되며, API는
-`127.0.0.1:8095`에만 붙어 있어 외부에서 직접 접근할 수 없습니다. 인터넷에 공개하려면 호스트
-nginx에 이 프로젝트용 서버 블록(도메인)을 하나 더 추가해서 `127.0.0.1:8095`로 리버스 프록시하면
-됩니다 — 도메인이 정해지면 그 설정을 추가해 드릴게요.
+`127.0.0.1:8095`에만 붙어 있어 외부에서 직접 접근할 수 없습니다.
+
+## 공개 주소 (도메인 없이 바로 발급)
+
+도메인을 따로 사지 않고 [sslip.io](https://sslip.io)로 VPS IP에 연결되는 진짜 주소를 만들었습니다.
+
+```
+https://haruhansu.31-97-71-87.sslip.io
+```
+
+- nginx 사이트 블록: `/etc/nginx/sites-available/haruhansu-api` (`127.0.0.1:8095`로 리버스 프록시)
+- 인증서: Let's Encrypt (`certbot --nginx`), 자동 갱신 등록됨, 만료일 2026-12-24
+- CORS: `.env`의 `CORS_ORIGIN`에 허용할 origin을 쉼표로 나열 (`*.vercel.app`처럼 와일드카드 가능).
+  지금은 `https://haru-hansu.vercel.app,*.vercel.app,http://localhost:5173`로 설정돼 있어요.
+
+나중에 진짜 도메인을 사면, 그 도메인으로 `certbot --nginx -d <도메인>`을 한 번 더 실행하고
+nginx 설정의 `server_name`만 바꾸면 됩니다.
+
+## Vercel(프런트엔드)에서 이 API 쓰기
+
+Vercel 프로젝트 설정 → Environment Variables에 아래를 추가하고 다시 배포하세요.
+
+```
+VITE_API_BASE=https://haruhansu.31-97-71-87.sslip.io/api
+```
