@@ -70,7 +70,7 @@ export default function Signup() {
 
   return (
     <>
-      <Header title="가족 계정 만들기" fallback="/welcome" />
+      <Header title="가족 계정 만들기" fallback="/login" />
       <Screen>
         <p className="dim small" style={{ marginBottom: 20 }}>
           {step === 'info' ? '1 / 3 · 기본 정보' : step === 'phone' ? '2 / 3 · 휴대폰 인증' : '3 / 3 · 인증번호 확인'}

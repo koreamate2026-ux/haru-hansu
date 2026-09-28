@@ -1,17 +1,15 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Body, Button, Screen } from '../components/ui';
-import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { profiles } = useApp();
   const { account, login, loading, error, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  if (profiles.length > 0 || account) return <Navigate to="/" replace />;
+  if (account) return <Navigate to="/" replace />;
 
   const submit = async () => {
     if (await login(email.trim(), password)) navigate('/', { replace: true });
@@ -67,9 +65,6 @@ export default function Login() {
         onClick={() => navigate('/signup')}
       >
         계정이 없으신가요? 휴대폰 인증으로 가입하기
-      </button>
-      <button type="button" className="text-btn" style={{ display: 'block', textAlign: 'center', width: '100%' }} onClick={() => navigate('/welcome')}>
-        계정 없이 바로 시작하기
       </button>
     </Screen>
   );

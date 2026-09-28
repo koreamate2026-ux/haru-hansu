@@ -3,9 +3,9 @@ import { api, type Account, type ApiHousehold } from '../lib/api';
 import { KEYS, load, save } from '../lib/storage';
 
 /**
- * 가족과 계정으로 연동하는 기능(선택 사항). 로그인하지 않아도 앱은 지금처럼
- * 이 브라우저에만 저장되는 방식으로 완전히 동작한다. 로그인해서 가족 그룹을
- * 고르면(currentHouseholdId), AppState가 사람·번호함을 그 그룹과 동기화한다.
+ * 가족 계정 로그인 상태. App.tsx의 TabsLayout이 로그인 여부를 게이트로 걸어
+ * 두어서, 계정 없이는 탭 화면(홈/사주/번호함/설정)에 들어올 수 없다. 로그인해서
+ * 가족 그룹을 고르면(currentHouseholdId), AppState가 사람·번호함을 그 그룹과 동기화한다.
  */
 interface StoredAuth {
   token: string;

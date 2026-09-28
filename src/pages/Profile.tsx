@@ -1,11 +1,12 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Header, Screen, Segmented, Switch, useGoBack } from '../components/ui';
 import { BLOOD_TYPES, type BloodType } from '../lib/luckyNumbers';
 import { newId } from '../lib/random';
 import { BirthDateError, toSolar } from '../lib/saju';
 import type { FamilyEvent, Profile as ProfileT } from '../lib/types';
 import { useApp } from '../state/AppState';
+import { useAuth } from '../state/AuthState';
 
 const EMPTY_EVENT: FamilyEvent = { label: '', month: 0, day: 0 };
 
@@ -38,8 +39,11 @@ export default function Profile() {
   const goBack = useGoBack('/settings');
   const [params] = useSearchParams();
   const id = params.get('id');
+  const { account } = useAuth();
   const { profiles, upsertProfile, deleteProfile, setActiveProfile } = useApp();
   const existing = profiles.find((p) => p.id === id);
+
+  if (!account) return <Navigate to="/login" replace />;
 
   const [name, setName] = useState(existing?.name ?? '');
   const [calendar, setCalendar] = useState<ProfileT['calendar']>(existing?.calendar ?? 'solar');
@@ -108,7 +112,7 @@ export default function Profile() {
 
   return (
     <>
-      <Header title="태어난 날 입력" fallback={profiles.length ? '/settings' : '/welcome'} />
+      <Header title="태어난 날 입력" fallback={profiles.length ? '/settings' : '/login'} />
       <Screen>
         <form
           onSubmit={(e) => {

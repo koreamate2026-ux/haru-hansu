@@ -5,110 +5,63 @@ import { DEFAULT_DRAW_API } from '../lib/draws';
 import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
 
+/** 이 화면은 로그인해야만 들어올 수 있어서(App.tsx의 로그인 게이트) account는 항상 있다 */
 function FamilySync() {
-  const navigate = useNavigate();
-  const { account, households, currentHouseholdId, setCurrentHousehold, loading, error, login, logout, createHousehold } = useAuth();
+  const { account, households, currentHouseholdId, setCurrentHousehold, loading, error, logout, createHousehold } = useAuth();
   const { synced } = useApp();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [householdName, setHouseholdName] = useState('');
-
-  if (account) {
-    return (
-      <Section title="가족과 연동하기">
-        <Body small style={{ marginBottom: 8 }}>
-          {account.email}로 로그인했어요.
-        </Body>
-        {households.length ? (
-          <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
-            {households.map((h) => {
-              const on = h.id === currentHouseholdId;
-              return (
-                <button
-                  key={h.id}
-                  type="button"
-                  className="person"
-                  style={{ borderColor: on ? 'var(--gold)' : 'transparent', textAlign: 'left' }}
-                  onClick={() => setCurrentHousehold(h.id)}
-                  aria-pressed={on}
-                >
-                  <div className="person-main" style={{ pointerEvents: 'none' }}>
-                    <div className="person-name">
-                      {h.name}
-                      {on ? <span className="dim"> · 지금 쓰는 중</span> : null}
-                    </div>
-                    <div className="person-detail">{h.role === 'owner' ? '내가 만든 그룹' : '초대받은 그룹'}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <Body dim small style={{ marginBottom: 12 }}>
-            아직 만든 가족 그룹이 없어요.
-          </Body>
-        )}
-        <div className="row" style={{ marginBottom: 12 }}>
-          <input
-            className="input small-text"
-            style={{ flex: 1 }}
-            value={householdName}
-            onChange={(e) => setHouseholdName(e.target.value)}
-            placeholder="예: 우리 가족"
-            maxLength={30}
-            aria-label="가족 그룹 이름"
-          />
-          <Button
-            label="만들기"
-            kind="secondary"
-            disabled={loading || !householdName.trim()}
-            onPress={async () => {
-              if (await createHousehold(householdName.trim())) setHouseholdName('');
-            }}
-          />
-        </div>
-        {error ? (
-          <Body small style={{ color: 'var(--danger)', marginBottom: 12 }}>
-            {error}
-          </Body>
-        ) : null}
-        <Button label="로그아웃" kind="secondary" onPress={logout} />
-        <Body dim small style={{ marginTop: 8 }}>
-          {synced
-            ? '지금 고른 가족 그룹과 사람·번호함이 서로 맞춰지고 있어요. 이 기기에서 추가·수정·삭제하면 서버에도 그대로 반영돼요.'
-            : '가족 그룹을 고르면 그때부터 사람·번호함이 서버와 맞춰져요.'}
-        </Body>
-      </Section>
-    );
-  }
-
-  const submit = async () => {
-    if (await login(email.trim(), password)) setPassword('');
-  };
 
   return (
     <Section title="가족과 연동하기">
-      <Body dim small style={{ marginBottom: 12 }}>
-        계정을 만들면 여러 기기에서 같은 가족 그룹을 볼 수 있어요. 만들지 않아도 이 브라우저에서는 지금처럼 계속 쓸 수 있어요.
+      <Body small style={{ marginBottom: 8 }}>
+        {account?.email}로 로그인했어요.
       </Body>
-      <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
+      {households.length ? (
+        <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
+          {households.map((h) => {
+            const on = h.id === currentHouseholdId;
+            return (
+              <button
+                key={h.id}
+                type="button"
+                className="person"
+                style={{ borderColor: on ? 'var(--gold)' : 'transparent', textAlign: 'left' }}
+                onClick={() => setCurrentHousehold(h.id)}
+                aria-pressed={on}
+              >
+                <div className="person-main" style={{ pointerEvents: 'none' }}>
+                  <div className="person-name">
+                    {h.name}
+                    {on ? <span className="dim"> · 지금 쓰는 중</span> : null}
+                  </div>
+                  <div className="person-detail">{h.role === 'owner' ? '내가 만든 그룹' : '초대받은 그룹'}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <Body dim small style={{ marginBottom: 12 }}>
+          아직 만든 가족 그룹이 없어요.
+        </Body>
+      )}
+      <div className="row" style={{ marginBottom: 12 }}>
         <input
           className="input small-text"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="이메일"
-          autoCapitalize="none"
-          autoCorrect="off"
-          aria-label="이메일"
+          style={{ flex: 1 }}
+          value={householdName}
+          onChange={(e) => setHouseholdName(e.target.value)}
+          placeholder="예: 우리 가족"
+          maxLength={30}
+          aria-label="가족 그룹 이름"
         />
-        <input
-          className="input small-text"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="비밀번호"
-          aria-label="비밀번호"
+        <Button
+          label="만들기"
+          kind="secondary"
+          disabled={loading || !householdName.trim()}
+          onPress={async () => {
+            if (await createHousehold(householdName.trim())) setHouseholdName('');
+          }}
         />
       </div>
       {error ? (
@@ -116,10 +69,12 @@ function FamilySync() {
           {error}
         </Body>
       ) : null}
-      <Button label={loading ? '처리 중…' : '로그인'} onPress={submit} disabled={loading || !email.trim() || !password} />
-      <button type="button" className="link" style={{ display: 'block', textAlign: 'center', width: '100%', marginTop: 12 }} onClick={() => navigate('/signup')}>
-        계정이 없으신가요? 휴대폰 인증으로 가입하기
-      </button>
+      <Button label="로그아웃" kind="secondary" onPress={logout} />
+      <Body dim small style={{ marginTop: 8 }}>
+        {synced
+          ? '지금 고른 가족 그룹과 사람·번호함이 서로 맞춰지고 있어요. 이 기기에서 추가·수정·삭제하면 서버에도 그대로 반영돼요.'
+          : '가족 그룹을 고르면 그때부터 사람·번호함이 서버와 맞춰져요.'}
+      </Body>
     </Section>
   );
 }
@@ -132,7 +87,7 @@ export default function Settings() {
   const onReset = () => {
     if (window.confirm('모든 정보를 지울까요?\n등록한 사람, 저장한 번호, 설정이 이 브라우저에서 모두 지워져요.')) {
       resetAll();
-      navigate('/welcome', { replace: true });
+      navigate('/login', { replace: true });
     }
   };
 
@@ -191,7 +146,7 @@ export default function Settings() {
           번호를 고르는 방법
         </button>
         <Body dim small style={{ marginTop: 8 }}>
-          입력한 생년월일과 저장한 번호는 이 브라우저에만 저장되고 어디에도 전송되지 않아요. 당첨번호를 조회할 때만 회차 번호가 조회 주소로 전송돼요. 위에서 계정을 만들면 그 이메일·이름·가족 그룹 이름만 서버로 전송돼요.
+          가족 계정에 로그인해야 사람·번호함을 볼 수 있어요. 이메일·이름·가족 그룹 이름은 서버에 저장되고, 당첨번호를 조회할 때만 회차 번호가 조회 주소로 전송돼요.
         </Body>
       </Section>
 

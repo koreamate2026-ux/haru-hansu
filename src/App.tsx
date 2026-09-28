@@ -11,17 +11,13 @@ import Signup from './pages/Signup';
 import ThisWeek from './pages/ThisWeek';
 import TicketNew from './pages/TicketNew';
 import Tickets from './pages/Tickets';
-import Welcome from './pages/Welcome';
-import { AppStateProvider, useApp } from './state/AppState';
+import { AppStateProvider } from './state/AppState';
 import { AuthStateProvider, useAuth } from './state/AuthState';
 
-/** 등록된 사람도 없고 로그인도 안 했으면 첫 화면으로. 로그인은 했는데 아직 서버에서
- * 받아온 사람이 없으면(새 가족 그룹 등) 통과시키고, 설정 탭은 로그인하러 갈 수 있게 항상 열어 둔다 */
+/** 로그인한 계정이 없으면 로컬에 저장된 사람이 있어도 예외 없이 로그인 화면으로 보낸다 */
 function TabsLayout() {
-  const { profiles } = useApp();
   const { account } = useAuth();
-  const { pathname } = useLocation();
-  if (profiles.length === 0 && !account && pathname !== '/settings') return <Navigate to="/login" replace />;
+  if (!account) return <Navigate to="/login" replace />;
   return (
     <>
       <Outlet />
@@ -53,7 +49,7 @@ export default function App() {
                 <Route path="settings" element={<Settings />} />
               </Route>
               <Route path="login" element={<Login />} />
-              <Route path="welcome" element={<Welcome />} />
+              <Route path="welcome" element={<Navigate to="/login" replace />} />
               <Route path="signup" element={<Signup />} />
               <Route path="profile" element={<Profile />} />
               <Route path="ticket-new" element={<TicketNew />} />
