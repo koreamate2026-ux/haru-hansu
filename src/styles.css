@@ -1,4 +1,4 @@
-/* 쪽빛(藍) 바탕에 오방색을 번호공에만 쓰는 팔레트 — 앱과 같은 값 */
+/* 로고와 같은 한지(韓紙) 톤 — 따뜻한 종이 바탕에 먹색 선 */
 @font-face {
   font-family: 'HanjaSerif';
   src: url('/fonts/HanjaSerif-Bold.otf') format('opentype');
@@ -7,17 +7,17 @@
 }
 
 :root {
-  --bg: #1f2a5a;
-  --surface: #27346b;
-  --surface-high: #31407d;
-  --line: #3d4c8c;
-  --text: #f2efe6;
-  --text-dim: #b7bedc;
-  --text-faint: #8690bd;
-  --gold: #e0b43a;
-  --gold-ink: #2a2208;
-  --danger: #f08a7a;
-  --water-ring: #6c78ae;
+  --bg: #f3f0e6;
+  --surface: #fffdf7;
+  --surface-high: #ece7d8;
+  --line: #ddd6c2;
+  --text: #211f1a;
+  --text-dim: #5c584c;
+  --text-faint: #8c8672;
+  --gold: #8a5f1a;
+  --gold-ink: #fffaf0;
+  --danger: #b3402c;
+  --water-ring: #7a7561;
 
   --font-display: 'Gowun Batang', serif;
   /* 고운바탕에는 한자가 없어서 사주 한자는 부분 글꼴로 */
@@ -25,7 +25,7 @@
   --font-body: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
 
   --tabbar-h: 64px;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }

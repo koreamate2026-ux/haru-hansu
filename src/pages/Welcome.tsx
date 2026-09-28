@@ -12,7 +12,8 @@ export default function Welcome() {
 
   return (
     <Screen>
-      <div style={{ margin: '48px 0 40px' }}>
+      <div style={{ margin: '32px 0 40px' }}>
+        <img src="/logo-mark-144.png" alt="하루 한수" width={72} height={72} style={{ display: 'block', marginBottom: 12 }} />
         <p className="welcome-mark">하루 한수</p>
         <h1 className="welcome-title">
           타고난 기운으로
