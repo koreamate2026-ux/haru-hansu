@@ -3,6 +3,7 @@ import { HashRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-
 import { TabBar } from './components/ui';
 import About from './pages/About';
 import DrawEntry from './pages/DrawEntry';
+import Login from './pages/Login';
 import Profile from './pages/Profile';
 import Saju from './pages/Saju';
 import Settings from './pages/Settings';
@@ -20,7 +21,7 @@ function TabsLayout() {
   const { profiles } = useApp();
   const { account } = useAuth();
   const { pathname } = useLocation();
-  if (profiles.length === 0 && !account && pathname !== '/settings') return <Navigate to="/welcome" replace />;
+  if (profiles.length === 0 && !account && pathname !== '/settings') return <Navigate to="/login" replace />;
   return (
     <>
       <Outlet />
@@ -51,6 +52,7 @@ export default function App() {
                 <Route path="tickets" element={<Tickets />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
+              <Route path="login" element={<Login />} />
               <Route path="welcome" element={<Welcome />} />
               <Route path="signup" element={<Signup />} />
               <Route path="profile" element={<Profile />} />
