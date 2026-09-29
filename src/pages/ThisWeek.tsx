@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BallRow, LottoBall } from '../components/LottoBall';
+import { NumberPicker } from '../components/NumberPicker';
 import { Body, Button, Screen, useToast } from '../components/ui';
 import { DREAMS, familyCompat, luckyCategories, type DreamKey } from '../lib/luckyNumbers';
 import { newId } from '../lib/random';
@@ -14,9 +15,10 @@ export default function ThisWeek() {
   const toast = useToast();
   const { profiles, activeProfile, activeChart, addTicket, hasTicket, todayDream, setTodayDream } = useApp();
   const [openKey, setOpenKey] = useState<string | null>(null);
-  const [rolls, setRolls] = useState<Record<string, number>>({});
+  const [rolls] = useState<Record<string, number>>({});
   const globalRoll = 0;
   const [pickedNums, setPickedNums] = useState<number[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const now = useMemo(() => new Date(), []);
   const todayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
@@ -55,23 +57,23 @@ export default function ThisWeek() {
   const allCategories = [...categories.slice(0, 2), familyCat, ...categories.slice(2)];
   const open = allCategories.find((c) => c.key === openKey) ?? null;
 
-  const onReroll = (key: string) => setRolls((r) => ({ ...r, [key]: (r[key] ?? 0) + 1 }));
+  // 오늘의 숫자에 하나 담는다(이미 담겼거나 6개 다 찼으면 그대로 둔다)
+  const togglePicked = (n: number) =>
+    setPickedNums((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : prev.length < MAX_DAILY_PICKS ? [...prev, n] : prev));
 
-  // 오늘의 숫자 추가하기: 누를 때마다 아직 안 나온 카테고리 행운 숫자를 무작위로 하나 더한다
+  // 누를 때마다 아직 안 담은 카테고리 행운 숫자를 무작위로 하나 더한다
   const addDailyNum = () => {
-    setPickedNums((prev) => {
-      if (prev.length >= MAX_DAILY_PICKS) return prev;
-      const pool = allCategories.filter((c) => !c.empty).map((c) => c.nums[0]);
-      const fromPool = pool.filter((n) => !prev.includes(n));
-      let next: number;
-      if (fromPool.length) {
-        next = fromPool[Math.floor(Math.random() * fromPool.length)];
-      } else {
-        const remaining = Array.from({ length: 45 }, (_, i) => i + 1).filter((n) => !prev.includes(n));
-        next = remaining[Math.floor(Math.random() * remaining.length)];
-      }
-      return [...prev, next];
-    });
+    if (pickedNums.length >= MAX_DAILY_PICKS) return;
+    const pool = allCategories.filter((c) => !c.empty).map((c) => c.nums[0]);
+    const fromPool = pool.filter((n) => !pickedNums.includes(n));
+    let next: number;
+    if (fromPool.length) {
+      next = fromPool[Math.floor(Math.random() * fromPool.length)];
+    } else {
+      const remaining = Array.from({ length: 45 }, (_, i) => i + 1).filter((n) => !pickedNums.includes(n));
+      next = remaining[Math.floor(Math.random() * remaining.length)];
+    }
+    togglePicked(next);
   };
 
   const onSaveDailyPick = () => {
@@ -132,23 +134,26 @@ export default function ThisWeek() {
             </Body>
           )}
         </div>
-        <div className="row" style={{ marginTop: 8, width: '100%' }}>
-          <div style={{ flex: 1 }}>
-            {pickedNums.length >= MAX_DAILY_PICKS ? (
-              <Button
-                label={hasTicket(round, pickedNums) ? '번호함에 저장됨' : '번호함에 저장'}
-                onPress={onSaveDailyPick}
-                disabled={hasTicket(round, pickedNums)}
-              />
-            ) : (
-              <Button label={`추가하기 (${pickedNums.length}/${MAX_DAILY_PICKS})`} onPress={addDailyNum} />
-            )}
-          </div>
-          {pickedNums.length ? (
-            <div style={{ flex: '0 0 auto', width: 88 }}>
-              <Button label="초기화" kind="secondary" onPress={() => setPickedNums([])} />
+        <div className="stack" style={{ marginTop: 8, width: '100%' }}>
+          {pickedNums.length >= MAX_DAILY_PICKS ? (
+            <Button
+              label={hasTicket(round, pickedNums) ? '번호함에 저장됨' : '번호함에 저장'}
+              onPress={onSaveDailyPick}
+              disabled={hasTicket(round, pickedNums)}
+            />
+          ) : (
+            <Button label={`추가하기 (${pickedNums.length}/${MAX_DAILY_PICKS})`} onPress={addDailyNum} />
+          )}
+          <div className="row">
+            <div style={{ flex: 1 }}>
+              <Button label="직접 추가" kind="secondary" onPress={() => setPickerOpen(true)} />
             </div>
-          ) : null}
+            {pickedNums.length ? (
+              <div style={{ flex: 1 }}>
+                <Button label="초기화" kind="secondary" onPress={() => setPickedNums([])} />
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -216,22 +221,51 @@ export default function ThisWeek() {
               ) : (
                 <>
                   <Button
-                    label={hasTicket(round, open.nums) ? '번호함에 저장됨' : '번호함에 저장'}
-                    onPress={() => onSaveTicket(open.nums, open.key, open.personIds)}
-                    disabled={hasTicket(round, open.nums)}
-                    kind={hasTicket(round, open.nums) ? 'secondary' : 'primary'}
+                    label={
+                      pickedNums.includes(open.nums[0])
+                        ? '이미 담았어요'
+                        : pickedNums.length >= MAX_DAILY_PICKS
+                          ? '오늘의 숫자가 이미 다 찼어요'
+                          : '오늘의 숫자에 담기'
+                    }
+                    onPress={() => {
+                      togglePicked(open.nums[0]);
+                      setOpenKey(null);
+                      toast.show('오늘의 숫자에 담았어요');
+                    }}
+                    disabled={pickedNums.includes(open.nums[0]) || pickedNums.length >= MAX_DAILY_PICKS}
                   />
-                  <div className="row">
-                    <div style={{ flex: 1 }}>
-                      <Button label="다시 뽑기" kind="secondary" onPress={() => onReroll(open.key)} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <Button label="번호 복사" kind="secondary" onPress={() => onCopy(open.title, open.nums)} />
-                    </div>
-                  </div>
+                  <Button label="번호 복사" kind="secondary" onPress={() => onCopy(open.title, open.nums)} />
                 </>
               )}
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {pickerOpen ? (
+        <div className="sheet-backdrop" onClick={() => setPickerOpen(false)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="숫자 직접 고르기">
+            <div className="sheet-head">
+              <div style={{ flex: 1 }}>
+                <h2 className="sheet-title">숫자 직접 고르기</h2>
+                <span className="dim small">
+                  {pickedNums.length}/{MAX_DAILY_PICKS}개 담았어요
+                </span>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => setPickerOpen(false)} aria-label="닫기">
+                ×
+              </button>
+            </div>
+            <NumberPicker
+              selected={pickedNums}
+              onToggle={togglePicked}
+              disabled={
+                pickedNums.length >= MAX_DAILY_PICKS
+                  ? Array.from({ length: 45 }, (_, i) => i + 1).filter((n) => !pickedNums.includes(n))
+                  : []
+              }
+            />
           </div>
         </div>
       ) : null}
