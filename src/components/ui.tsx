@@ -96,7 +96,7 @@ export function Switch({ value, onChange, label }: { value: boolean; onChange: (
 }
 
 const TABS = [
-  { to: '/', label: '오늘의 숫자', glyph: '數' },
+  { to: '/', label: '홈', glyph: '數' },
   { to: '/saju', label: '내 사주', glyph: '柱' },
   { to: '/tickets', label: '번호함', glyph: '藏' },
   { to: '/settings', label: '설정', glyph: '設' },
