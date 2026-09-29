@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LottoBall } from '../components/LottoBall';
+import { BallRow, LottoBall } from '../components/LottoBall';
 import { Body, Button, Screen, useToast } from '../components/ui';
 import { DREAMS, familyCompat, luckyCategories, type DreamKey } from '../lib/luckyNumbers';
 import { newId } from '../lib/random';
 import { upcomingRound } from '../lib/rounds';
 import { useApp } from '../state/AppState';
+
+const MAX_DAILY_PICKS = 6;
 
 export default function ThisWeek() {
   const navigate = useNavigate();
@@ -13,7 +15,8 @@ export default function ThisWeek() {
   const { profiles, activeProfile, activeChart, addTicket, hasTicket, todayDream, setTodayDream } = useApp();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [rolls, setRolls] = useState<Record<string, number>>({});
-  const [globalRoll, setGlobalRoll] = useState(0);
+  const globalRoll = 0;
+  const [pickedNums, setPickedNums] = useState<number[]>([]);
 
   const now = useMemo(() => new Date(), []);
   const todayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
@@ -51,10 +54,31 @@ export default function ThisWeek() {
   // 오행 숫자 바로 다음에 가족 궁합 숫자를 끼워 넣는다
   const allCategories = [...categories.slice(0, 2), familyCat, ...categories.slice(2)];
   const open = allCategories.find((c) => c.key === openKey) ?? null;
-  // 오행 숫자를 오늘의 대표 숫자로 맨 위에 크게 보여준다 (그리드에서도 그대로 볼 수 있음)
-  const hero = allCategories.find((c) => c.key === 'ohaeng')!;
 
   const onReroll = (key: string) => setRolls((r) => ({ ...r, [key]: (r[key] ?? 0) + 1 }));
+
+  // 오늘의 숫자 추가하기: 누를 때마다 아직 안 나온 카테고리 행운 숫자를 무작위로 하나 더한다
+  const addDailyNum = () => {
+    setPickedNums((prev) => {
+      if (prev.length >= MAX_DAILY_PICKS) return prev;
+      const pool = allCategories.filter((c) => !c.empty).map((c) => c.nums[0]);
+      const fromPool = pool.filter((n) => !prev.includes(n));
+      let next: number;
+      if (fromPool.length) {
+        next = fromPool[Math.floor(Math.random() * fromPool.length)];
+      } else {
+        const remaining = Array.from({ length: 45 }, (_, i) => i + 1).filter((n) => !prev.includes(n));
+        next = remaining[Math.floor(Math.random() * remaining.length)];
+      }
+      return [...prev, next];
+    });
+  };
+
+  const onSaveDailyPick = () => {
+    if (pickedNums.length !== MAX_DAILY_PICKS) return;
+    onSaveTicket(pickedNums, 'today-pick');
+    setPickedNums([]);
+  };
 
   const onSaveTicket = (nums: number[], category: string, personIds?: string[]) => {
     if (hasTicket(round, nums)) return;
@@ -97,22 +121,38 @@ export default function ThisWeek() {
         {activeProfile.bloodType ? <span className="chip on">{activeProfile.bloodType}형</span> : null}
       </div>
 
-      <button type="button" className="card hero-main" onClick={() => setOpenKey('ohaeng')} aria-label="오늘의 대표 숫자 자세히 보기">
-        <span className="dim small">오늘의 대표 숫자</span>
-        <div className="sheet-number" style={{ padding: '10px 0' }}>
-          <LottoBall n={hero.nums[0]} size={80} />
+      <div className="card hero-main" style={{ cursor: 'default' }}>
+        <span className="dim small">오늘의 숫자 추가하기</span>
+        <div className="sheet-number" style={{ padding: '10px 0', minHeight: 56 }}>
+          {pickedNums.length ? (
+            <BallRow numbers={pickedNums} size={40} />
+          ) : (
+            <Body dim small style={{ margin: 0 }}>
+              버튼을 눌러 행운 숫자를 하나씩 모아보세요
+            </Body>
+          )}
         </div>
-        <Body dim small style={{ margin: 0 }}>
-          {hero.story}
-        </Body>
-      </button>
-
-      <div className="home-bar">
-        <span className="dim small">그림을 눌러 숫자를 확인해요</span>
-        <button type="button" className="text-btn" onClick={() => setGlobalRoll((g) => g + 1)}>
-          오늘 번호 다시 뽑기
-        </button>
+        <div className="row" style={{ marginTop: 8, width: '100%' }}>
+          <div style={{ flex: 1 }}>
+            {pickedNums.length >= MAX_DAILY_PICKS ? (
+              <Button
+                label={hasTicket(round, pickedNums) ? '번호함에 저장됨' : '번호함에 저장'}
+                onPress={onSaveDailyPick}
+                disabled={hasTicket(round, pickedNums)}
+              />
+            ) : (
+              <Button label={`추가하기 (${pickedNums.length}/${MAX_DAILY_PICKS})`} onPress={addDailyNum} />
+            )}
+          </div>
+          {pickedNums.length ? (
+            <div style={{ flex: '0 0 auto', width: 88 }}>
+              <Button label="초기화" kind="secondary" onPress={() => setPickedNums([])} />
+            </div>
+          ) : null}
+        </div>
       </div>
+
+      <p className="dim small" style={{ margin: '16px 0' }}>그림을 눌러 숫자를 확인해요</p>
 
       <div className="cat-grid">
         {allCategories.map((c) => (
