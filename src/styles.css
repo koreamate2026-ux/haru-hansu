@@ -7,7 +7,7 @@
 }
 
 :root {
-  --bg: #f3f0e6;
+  --bg: #ffffff;
   --surface: #fffdf7;
   --surface-high: #ece7d8;
   --line: #ddd6c2;
@@ -253,6 +253,17 @@ input { font: inherit; }
   border: 1px solid var(--line);
 }
 .hero-main:active { opacity: 0.85; }
+
+/* 광고 자리 */
+.ad-slot {
+  margin-top: 16px;
+  min-height: 64px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* 이번 주 */
 .chips { display: flex; gap: 8px; overflow-x: auto; margin: 0 -20px 20px; padding: 0 20px; scrollbar-width: none; }

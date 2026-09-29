@@ -157,6 +157,10 @@ export default function ThisWeek() {
         </div>
       </div>
 
+      <div className="ad-slot" role="complementary" aria-label="광고 영역">
+        <span className="faint small">광고 영역</span>
+      </div>
+
       <p className="dim small" style={{ margin: '16px 0' }}>그림을 눌러 숫자를 확인해요</p>
 
       <div className="cat-grid">
