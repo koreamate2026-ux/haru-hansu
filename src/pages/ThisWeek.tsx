@@ -123,7 +123,7 @@ export default function ThisWeek() {
         {activeProfile.bloodType ? <span className="chip on">{activeProfile.bloodType}형</span> : null}
       </div>
 
-      <div className="card hero-main" style={{ cursor: 'default' }}>
+      <div className="hero-main" style={{ cursor: 'default', border: 'none' }}>
         <span className="dim small">오늘의 숫자 추가하기</span>
         <div className="sheet-number" style={{ padding: '10px 0', minHeight: 56 }}>
           {pickedNums.length ? (
