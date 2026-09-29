@@ -38,6 +38,36 @@ export default function Saju() {
     <Screen tabs>
       <Title sub={`${birth} · ${c.animal}띠 · ${p.calendar === 'lunar' ? `양력 ${c.solarDate}` : c.lunarLabel}`}>{p.name}님의 사주</Title>
 
+      <div className="card fortune">
+        <div className="fortune-head">
+          <div style={{ flex: 1 }}>
+            <span className="dim small">
+              {fortune.dateLabel} 오늘의 운세
+            </span>
+            <h2 className="fortune-title">{fortune.headline}</h2>
+          </div>
+          <span className="score" aria-label={`오늘의 점수 100점 중 ${fortune.score}점`}>
+            {fortune.score}
+            <span className="score-unit">점</span>
+          </span>
+        </div>
+        <Body>{fortune.body}</Body>
+        <dl className="kv" style={{ margin: 0 }}>
+          <dt>재물</dt>
+          <dd>{fortune.money}</dd>
+          <dt>사람</dt>
+          <dd>{fortune.people}</dd>
+          <dt>한 가지</dt>
+          <dd>{fortune.tip}</dd>
+        </dl>
+        <div className="lucky-row">
+          <LottoBall n={fortune.luckyNumber} size={40} />
+          <Body dim style={{ flex: 1, fontSize: 14 }}>
+            오늘의 숫자 {fortune.luckyNumber} · {fortune.luckyColor} · {fortune.luckyDirection}
+          </Body>
+        </div>
+      </div>
+
       <Section>
         <PillarTable chart={c} />
         {c.dstAdjusted ? (
@@ -73,36 +103,6 @@ export default function Saju() {
           {useful.name} 번호는 끝자리가 {useful.digits.join('·')}인 번호예요. 행운의 색은 {useful.colorName}, 방향은 {useful.direction}이에요.
         </Body>
       </section>
-
-      <div className="card fortune">
-        <div className="fortune-head">
-          <div style={{ flex: 1 }}>
-            <span className="dim small">
-              {fortune.dateLabel} 오늘의 운세
-            </span>
-            <h2 className="fortune-title">{fortune.headline}</h2>
-          </div>
-          <span className="score" aria-label={`오늘의 점수 100점 중 ${fortune.score}점`}>
-            {fortune.score}
-            <span className="score-unit">점</span>
-          </span>
-        </div>
-        <Body>{fortune.body}</Body>
-        <dl className="kv" style={{ margin: 0 }}>
-          <dt>재물</dt>
-          <dd>{fortune.money}</dd>
-          <dt>사람</dt>
-          <dd>{fortune.people}</dd>
-          <dt>한 가지</dt>
-          <dd>{fortune.tip}</dd>
-        </dl>
-        <div className="lucky-row">
-          <LottoBall n={fortune.luckyNumber} size={40} />
-          <Body dim style={{ flex: 1, fontSize: 14 }}>
-            오늘의 숫자 {fortune.luckyNumber} · {fortune.luckyColor} · {fortune.luckyDirection}
-          </Body>
-        </div>
-      </div>
 
       <Button label="생년월일 수정" kind="secondary" onPress={() => navigate(`/profile?id=${encodeURIComponent(p.id)}`)} />
     </Screen>
