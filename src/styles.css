@@ -7,7 +7,8 @@
 }
 
 :root {
-  --bg: #ffffff;
+  --bg: #f3f0e6;
+  --page-bg: #ffffff;
   --surface: #fffdf7;
   --surface-high: #ece7d8;
   --line: #ddd6c2;
@@ -32,7 +33,7 @@
 
 html, body {
   margin: 0;
-  background: var(--bg);
+  background: var(--page-bg);
   color: var(--text);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
@@ -49,6 +50,7 @@ input { font: inherit; }
   min-height: 100dvh;
   margin: 0 auto;
   position: relative;
+  background: var(--bg);
 }
 
 .screen {
@@ -263,6 +265,19 @@ input { font: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.ad-banner { margin-top: 16px; min-height: 64px; }
+.ad-popup-backdrop { align-items: center; padding: 20px; }
+.ad-popup {
+  width: 100%;
+  max-width: 340px;
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
 }
 
 /* 이번 주 */

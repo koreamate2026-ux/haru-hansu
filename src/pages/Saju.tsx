@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AdFitPopup, adFitPopupEnabled } from '../components/Ads';
 import { ElementBars } from '../components/ElementBars';
 import { LottoBall } from '../components/LottoBall';
 import { PillarTable } from '../components/PillarTable';
@@ -13,10 +14,18 @@ const STRENGTH_LABEL = { strong: '타고난 힘이 센 편', weak: '타고난 �
 export default function Saju() {
   const navigate = useNavigate();
   const { activeProfile, activeChart } = useApp();
+  const [adDone, setAdDone] = useState(!adFitPopupEnabled);
   const fortune = useMemo(
     () => (activeProfile && activeChart ? dailyFortune(activeProfile, activeChart) : null),
     [activeProfile, activeChart],
   );
+  if (!adDone) {
+    return (
+      <Screen tabs>
+        <AdFitPopup onClose={() => setAdDone(true)} />
+      </Screen>
+    );
+  }
   if (!activeProfile || !activeChart || !fortune) return null;
 
   const c = activeChart;
