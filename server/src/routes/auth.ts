@@ -3,8 +3,15 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { signPhoneToken, signToken, verifyPhoneToken } from '../lib/jwt.js';
 import { issueOtp, verifyOtp } from '../lib/otpStore.js';
+import { checkPhoneRateLimit, resetPhoneRateLimit } from '../lib/phoneRateLimit.js';
 import { prisma } from '../lib/prisma.js';
 import { sendOtpSms } from '../lib/sms.js';
+
+function formatWait(ms: number): string {
+  const minutes = Math.ceil(ms / 60000);
+  if (minutes < 60) return `${minutes}분`;
+  return `${Math.ceil(minutes / 60)}시간`;
+}
 
 export const authRouter = Router();
 
@@ -22,6 +29,14 @@ authRouter.post('/phone/request', async (req, res) => {
 
   const taken = await prisma.account.findUnique({ where: { phone } });
   if (taken) return res.status(409).json({ error: '이미 가입에 쓰인 번호예요.' });
+
+  const limit = checkPhoneRateLimit(phone);
+  if (!limit.ok) {
+    if (limit.permanent) {
+      return res.status(403).json({ error: '인증번호 요청이 너무 많아요. 관리자에게 문의하세요.' });
+    }
+    return res.status(429).json({ error: `인증번호를 너무 많이 요청했어요. ${formatWait(limit.retryAt - Date.now())} 후에 다시 시도해 주세요.` });
+  }
 
   const code = issueOtp(phone);
   try {
@@ -41,6 +56,7 @@ authRouter.post('/phone/verify', async (req, res) => {
 
   const result = verifyOtp(phone, code);
   if (!result.ok) return res.status(400).json({ error: result.error });
+  resetPhoneRateLimit(phone);
   res.json({ verifyToken: signPhoneToken(phone) });
 });
 
