@@ -42,8 +42,13 @@ export default function Tickets() {
   return (
     <Screen tabs>
       <Title sub="저장한 번호와 추첨 결과를 회차별로 모아 봐요.">번호함</Title>
-      <div style={{ marginBottom: 32 }}>
-        <Button label="산 번호 직접 저장" kind="secondary" onPress={() => navigate('/ticket-new')} />
+      <div className="row" style={{ marginBottom: 32 }}>
+        <div style={{ flex: 1 }}>
+          <Button label="산 번호 직접 저장" kind="secondary" onPress={() => navigate('/ticket-new')} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <Button label="기록 분석" kind="secondary" onPress={() => navigate('/stats')} />
+        </div>
       </div>
 
       {groups.length === 0 ? <Body dim>아직 저장한 번호가 없어요. 이번 주 탭에서 마음에 드는 조합을 저장해 보세요.</Body> : null}

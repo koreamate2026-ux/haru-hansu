@@ -17,40 +17,40 @@ export interface SendSmsResult {
 
 const PROVIDER = process.env.SMS_PROVIDER || 'test';
 
-export async function sendOtpSms(phone: string, code: string): Promise<SendSmsResult> {
+/** 문자 한 통 보내기. 테스트 모드에서는 보내지 않고 서버 로그에만 남긴다 */
+export async function sendSms(phone: string, text: string): Promise<void> {
   if (PROVIDER === 'test') {
-    console.log(`[SMS 테스트 모드] ${phone} 로 보낼 인증번호: ${code}`);
-    return { ok: true, devCode: code };
+    console.log(`[SMS 테스트 모드] ${phone} ← ${text}`);
+    return;
   }
+  if (PROVIDER !== 'solapi') throw new Error(`지원하지 않는 SMS_PROVIDER예요: ${PROVIDER}`);
 
-  if (PROVIDER === 'solapi') {
-    const apiKey = process.env.SOLAPI_API_KEY;
-    const apiSecret = process.env.SOLAPI_API_SECRET;
-    const sender = process.env.SOLAPI_SENDER;
-    if (!apiKey || !apiSecret || !sender) {
-      throw new Error('SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER 환경변수를 먼저 채워 주세요.');
-    }
-    const { createHmac, randomBytes } = await import('node:crypto');
-    const date = new Date().toISOString();
-    const salt = randomBytes(16).toString('hex');
-    const signature = createHmac('sha256', apiSecret).update(date + salt).digest('hex');
-
-    const res = await fetch('https://api.solapi.com/messages/v4/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `HMAC-SHA256 apiKey=${apiKey}, date=${date}, salt=${salt}, signature=${signature}`,
-      },
-      body: JSON.stringify({
-        message: { to: phone, from: sender, text: `[하루 한수] 인증번호는 ${code} 입니다.` },
-      }),
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`문자 발송 실패 (${res.status}): ${text.slice(0, 200)}`);
-    }
-    return { ok: true };
+  const apiKey = process.env.SOLAPI_API_KEY;
+  const apiSecret = process.env.SOLAPI_API_SECRET;
+  const sender = process.env.SOLAPI_SENDER;
+  if (!apiKey || !apiSecret || !sender) {
+    throw new Error('SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER 환경변수를 먼저 채워 주세요.');
   }
+  const { createHmac, randomBytes } = await import('node:crypto');
+  const date = new Date().toISOString();
+  const salt = randomBytes(16).toString('hex');
+  const signature = createHmac('sha256', apiSecret).update(date + salt).digest('hex');
 
-  throw new Error(`지원하지 않는 SMS_PROVIDER예요: ${PROVIDER}`);
+  const res = await fetch('https://api.solapi.com/messages/v4/send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `HMAC-SHA256 apiKey=${apiKey}, date=${date}, salt=${salt}, signature=${signature}`,
+    },
+    body: JSON.stringify({ message: { to: phone, from: sender, text } }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`문자 발송 실패 (${res.status}): ${body.slice(0, 200)}`);
+  }
+}
+
+export async function sendOtpSms(phone: string, code: string): Promise<SendSmsResult> {
+  await sendSms(phone, `[하루 한수] 인증번호는 ${code} 입니다.`);
+  return PROVIDER === 'test' ? { ok: true, devCode: code } : { ok: true };
 }

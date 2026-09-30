@@ -1,4 +1,4 @@
-import { Lunar, Solar, type SolarDate } from 'lunar-javascript';
+import { Lunar, Solar, type EightChar, type SolarDate } from 'lunar-javascript';
 import { convertKoreanClock } from './koreaTime';
 import { BRANCHES, CONTROLS, ELEMENTS, GENERATES, STEMS, controllerOf, motherOf } from './elements';
 import type { Element, Profile } from './types';
@@ -71,7 +71,7 @@ export function toSolar(p: Pick<Profile, 'calendar' | 'leapMonth' | 'year' | 'mo
   }
 }
 
-export function computeChart(p: Profile): SajuChart {
+function birthMoments(p: Profile) {
   const solar = toSolar(p);
   const hour = p.hour ?? 12;
   const minute = p.hour === null ? 0 : p.minute;
@@ -79,6 +79,14 @@ export function computeChart(p: Profile): SajuChart {
   // 연주·월주: 절기 경계를 중국 표준시로 계산하는 라이브러리에 맞춰 변환한 시각으로
   const ct = conv.chinaTime;
   const ecTerm = Solar.fromYmdHms(ct.y, ct.m, ct.d, ct.h, ct.mi, 0).getLunar().getEightChar();
+  return { solar, conv, ecTerm };
+}
+
+/** 대운 계산용: 연주·월주를 세운 것과 같은 기준(절기)의 팔자 */
+export const termEightChar = (p: Profile): EightChar => birthMoments(p).ecTerm;
+
+export function computeChart(p: Profile): SajuChart {
+  const { solar, conv, ecTerm } = birthMoments(p);
   // 일주·시주: 서머타임을 뺀 한국 표준시각으로. sect 2 = 야자시(23시대)는 다음 날로 넘기지 않음
   const st = conv.standardLocal;
   const ec = Solar.fromYmdHms(st.y, st.m, st.d, st.h, st.mi, 0).getLunar().getEightChar();

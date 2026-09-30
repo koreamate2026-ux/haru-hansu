@@ -7,6 +7,7 @@ import { PillarTable } from '../components/PillarTable';
 import { Body, Button, Screen, Section, Title } from '../components/ui';
 import { ELEMENT_INFO } from '../lib/elements';
 import { DAY_MASTER_TEXT, STRENGTH_TEXT, dailyFortune } from '../lib/fortune';
+import { elementName, sajuDetail, type LuckItem } from '../lib/sajuDetail';
 import { useApp } from '../state/AppState';
 import { useBilling } from '../state/BillingState';
 
@@ -20,6 +21,10 @@ export default function Saju() {
   const fortune = useMemo(
     () => (activeProfile && activeChart ? dailyFortune(activeProfile, activeChart) : null),
     [activeProfile, activeChart],
+  );
+  const detail = useMemo(
+    () => (premium && activeProfile && activeChart ? sajuDetail(activeProfile, activeChart) : null),
+    [premium, activeProfile, activeChart],
   );
   // 플러스 회원인지 확인되기 전에는 광고도 내용도 보여주지 않는다
   if (!adDone && !billingLoaded) return <Screen tabs>{null}</Screen>;
@@ -108,7 +113,91 @@ export default function Saju() {
         </Body>
       </section>
 
+      {detail ? (
+        <Section title="자세한 풀이">
+          <h3 className="detail-head">10년 운의 흐름</h3>
+          {detail.decades ? (
+            <div className="stack" style={{ gap: 10, marginBottom: 20 }}>
+              {detail.decades
+                .filter((d) => d.current || d.startYear > new Date().getFullYear())
+                .slice(0, 3)
+                .map((d) => (
+                  <div key={d.startYear} className={d.current ? 'card luck now' : 'luck'}>
+                    <div className="luck-top">
+                      <span className="hanja">{d.ganzhi}</span>
+                      <span className="dim small">
+                        {d.startAge}~{d.endAge}세 · {d.startYear}~{d.endYear}년{d.current ? ' · 지금' : ''}
+                      </span>
+                    </div>
+                    <LuckText item={d} />
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <div className="luck" style={{ marginBottom: 20 }}>
+              <Body dim small>
+                성별을 넣으면 10년 단위 운의 흐름을 볼 수 있어요. 대운은 성별에 따라 흐르는 방향이 달라요.
+              </Body>
+              <button type="button" className="text-btn" onClick={() => navigate(`/profile?id=${encodeURIComponent(p.id)}`)}>
+                성별 넣으러 가기
+              </button>
+            </div>
+          )}
+
+          <h3 className="detail-head">{detail.year.label} 운</h3>
+          <div className="luck" style={{ marginBottom: 20 }}>
+            <div className="luck-top">
+              <span className="hanja">{detail.year.ganzhi}</span>
+            </div>
+            <LuckText item={detail.year} />
+          </div>
+
+          <h3 className="detail-head">{detail.month.label} 운</h3>
+          <div className="luck" style={{ marginBottom: 20 }}>
+            <div className="luck-top">
+              <span className="hanja">{detail.month.ganzhi}</span>
+            </div>
+            <LuckText item={detail.month} />
+          </div>
+
+          <h3 className="detail-head">타고난 성향</h3>
+          <dl className="kv" style={{ margin: 0 }}>
+            <dt>재물</dt>
+            <dd>{detail.tendency.money}</dd>
+            <dt>일</dt>
+            <dd>{detail.tendency.work}</dd>
+            <dt>사람</dt>
+            <dd>{detail.tendency.people}</dd>
+          </dl>
+        </Section>
+      ) : (
+        <div className="card locked" style={{ marginBottom: 28 }}>
+          <span className="dim small">하루 한수 플러스</span>
+          <h2 className="section-title" style={{ margin: '4px 0 8px' }}>
+            자세한 풀이
+          </h2>
+          <Body dim small style={{ marginBottom: 12 }}>
+            10년 단위 운의 흐름, 올해·이번 달 운, 재물·일·사람 성향 풀이를 볼 수 있어요.
+          </Body>
+          <Button label="플러스로 자세히 보기" onPress={() => navigate('/premium')} />
+        </div>
+      )}
+
       <Button label="생년월일 수정" kind="secondary" onPress={() => navigate(`/profile?id=${encodeURIComponent(p.id)}`)} />
     </Screen>
+  );
+}
+
+function LuckText({ item }: { item: LuckItem }) {
+  return (
+    <>
+      <span className="dim small">
+        {item.relationName} · {elementName(item.element)}
+        {item.helpful ? ' · 나에게 필요한 기운' : ''}
+      </span>
+      <Body small style={{ marginTop: 6 }}>
+        {item.text}
+      </Body>
+    </>
   );
 }

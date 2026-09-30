@@ -4,12 +4,14 @@ import { TabBar } from './components/ui';
 import About from './pages/About';
 import AddNumber from './pages/AddNumber';
 import DrawEntry from './pages/DrawEntry';
+import Legal from './pages/Legal';
 import Login from './pages/Login';
 import Premium from './pages/Premium';
 import Profile from './pages/Profile';
 import Saju from './pages/Saju';
 import Settings from './pages/Settings';
 import Signup from './pages/Signup';
+import Stats from './pages/Stats';
 import ThisWeek from './pages/ThisWeek';
 import TicketNew from './pages/TicketNew';
 import Tickets from './pages/Tickets';
@@ -69,6 +71,8 @@ export default function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="add-number" element={<AddNumber />} />
               <Route path="premium" element={<Premium />} />
+              <Route path="stats" element={<Stats />} />
+              <Route path="legal/:doc" element={<Legal />} />
               <Route path="ticket-new" element={<TicketNew />} />
               <Route path="draw-entry/:round" element={<DrawEntry />} />
               <Route path="about" element={<About />} />

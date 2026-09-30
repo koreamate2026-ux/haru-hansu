@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { api, type ApiPerson, type ApiPersonInput, type ApiTicket } from '../lib/api';
+import { ApiError, api, type ApiPerson, type ApiPersonInput, type ApiTicket } from '../lib/api';
 import { fetchDraw } from '../lib/draws';
 import type { DreamKey } from '../lib/luckyNumbers';
 import { todayKST } from '../lib/rounds';
@@ -30,6 +30,7 @@ function personToProfile(p: ApiPerson): Profile {
     hour: p.birthHour,
     minute: p.birthMinute,
     bloodType: p.bloodType,
+    gender: p.gender ?? null,
     familyEvents: p.familyEvents,
     createdAt: new Date(p.createdAt).getTime(),
   };
@@ -46,6 +47,7 @@ function profileToPersonInput(p: Profile): ApiPersonInput {
     birthHour: p.hour,
     birthMinute: p.minute,
     bloodType: p.bloodType,
+    gender: p.gender ?? null,
     familyEvents: p.familyEvents,
   };
 }
@@ -211,8 +213,22 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               return next;
             });
           })
-          .catch(() => {
-            // 서버 저장에 실패해도 이 기기에는 이미 반영돼 있어 계속 쓸 수 있음
+          .catch((e) => {
+            // 서버가 규칙으로 거절한 새 사람(무료 인원 한도 등)은 이 기기에서도 되돌린다.
+            // 네트워크 문제 같은 일시적 실패는 이 기기에는 반영된 채로 둔다
+            if (existed || !(e instanceof ApiError) || !e.code) return;
+            setProfiles((prev) => {
+              const next = prev.filter((x) => x.id !== localId);
+              save(KEYS.profiles, next);
+              return next;
+            });
+            setActiveId((cur) => {
+              if (cur !== localId) return cur;
+              const nextId = profilesRef.current.find((x) => x.id !== localId)?.id ?? null;
+              save(KEYS.activeProfileId, nextId);
+              return nextId;
+            });
+            window.alert(e.message);
           });
       }
     },

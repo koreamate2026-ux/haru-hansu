@@ -20,6 +20,8 @@ export interface Profile {
   minute: number;
   /** 오늘의 행운 숫자 중 혈액형 숫자용. 모르면 null */
   bloodType: 'A' | 'B' | 'O' | 'AB' | null;
+  /** 10년 운(대운) 계산에만 쓴다. 예전에 저장한 사람은 값이 없을 수 있음 */
+  gender?: 'M' | 'F' | null;
   /** 오늘의 행운 숫자 중 가족 기념일 숫자용. 최대 2개, 비워 둘 수 있음 */
   familyEvents: FamilyEvent[];
   createdAt: number;

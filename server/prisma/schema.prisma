@@ -37,9 +37,16 @@ model Subscription {
   customerKey       String    @unique
   /// monthly | yearly
   plan              String    @default("monthly")
+  /// 다음 갱신부터 바꿀 요금제. 갱신 때 plan으로 옮기고 비운다
+  nextPlan          String?
   /// pending(카드 등록 전) | active | past_due(갱신 결제 실패, 재시도 중) | expired
   status            String    @default("pending")
+  /// 암호화해서 저장(lib/secretBox.ts)
   billingKey        String?
+  /// 첫 결제 요청을 보내기 직전에 적어 두는 주문번호. 서버가 중간에 멈춰도 이걸로 결제 여부를 되짚는다
+  pendingOrderId    String?
+  /// 갱신 전 안내 문자를 보낸 기간(currentPeriodEnd). 같은 기간에 두 번 보내지 않도록
+  renewalNoticeFor  DateTime?
   currentPeriodEnd  DateTime?
   cancelAtPeriodEnd Boolean   @default(false)
   failedAttempts    Int       @default(0)
@@ -60,8 +67,9 @@ model SubscriptionPayment {
   orderId        String   @unique
   plan           String
   amount         Int
-  /// paid | failed
+  /// paid | failed | refunded | partially_refunded
   status         String
+  refundedAmount Int      @default(0)
   paymentKey     String?
   failReason     String?
   periodStart    DateTime
@@ -133,6 +141,8 @@ model Person {
   birthHour   Int?
   birthMinute Int       @default(0)
   bloodType   BloodType?
+  /// M | F. 10년 운(대운) 계산에만 쓰고, 모르면 null
+  gender      String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

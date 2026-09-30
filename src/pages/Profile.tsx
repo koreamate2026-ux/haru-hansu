@@ -40,7 +40,7 @@ export default function Profile() {
   const goBack = useGoBack('/settings');
   const [params] = useSearchParams();
   const id = params.get('id');
-  const { account } = useAuth();
+  const { account, households, currentHouseholdId } = useAuth();
   const { profiles, upsertProfile, deleteProfile, setActiveProfile } = useApp();
   const existing = profiles.find((p) => p.id === id);
   const { loaded: billingLoaded, premium, status: billing } = useBilling();
@@ -55,6 +55,7 @@ export default function Profile() {
   const [hour, setHour] = useState(existing?.hour != null ? String(existing.hour) : '');
   const [minute, setMinute] = useState(existing?.hour != null ? String(existing.minute) : '');
   const [bloodType, setBloodType] = useState<BloodType | null>(existing?.bloodType ?? null);
+  const [gender, setGender] = useState<'M' | 'F' | null>(existing?.gender ?? null);
   const [events, setEvents] = useState<FamilyEvent[]>([existing?.familyEvents?.[0] ?? EMPTY_EVENT, existing?.familyEvents?.[1] ?? EMPTY_EVENT]);
   const updateEvent = (i: number, patch: Partial<FamilyEvent>) =>
     setEvents((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
@@ -85,20 +86,25 @@ export default function Profile() {
 
   if (!account) return <Navigate to="/login" replace />;
 
-  // 무료 계정은 새 사람을 한도까지만 추가할 수 있다(이미 있는 사람 수정은 그대로)
-  if (!existing && billingLoaded && billing?.enabled && !premium && profiles.length >= FREE_PERSON_LIMIT) {
+  // 인원 제한은 그룹을 만든 사람의 구독으로 판단한다. 내가 만든 그룹이면 방금 구독한 것도 바로 반영
+  const group = households.find((h) => h.id === currentHouseholdId);
+  const isOwner = group?.role === 'owner';
+  const groupPlus = Boolean(group?.plus) || (isOwner && premium);
+  if (!existing && billingLoaded && billing?.enabled && !groupPlus && profiles.length >= FREE_PERSON_LIMIT) {
     return (
       <>
         <Header title="가족·친구 추가" fallback="/settings" />
         <Screen>
           <h2 className="title" style={{ fontSize: 24, lineHeight: '34px' }}>
-            무료로는 {FREE_PERSON_LIMIT}명까지 등록할 수 있어요
+            무료 가족 그룹은 {FREE_PERSON_LIMIT}명까지 등록할 수 있어요
           </h2>
           <p className="sub" style={{ margin: '8px 0 24px' }}>
-            하루 한수 플러스를 이용하면 가족과 친구를 인원 제한 없이 추가할 수 있어요.
+            {isOwner || !group
+              ? '하루 한수 플러스를 이용하면 이 가족 그룹에 인원 제한 없이 추가할 수 있어요.'
+              : '이 가족 그룹을 만든 분이 하루 한수 플러스를 이용하면 인원 제한이 풀려요.'}
           </p>
           <div className="stack">
-            <Button label="하루 한수 플러스 알아보기" onPress={() => navigate('/premium')} />
+            {isOwner || !group ? <Button label="하루 한수 플러스 알아보기" onPress={() => navigate('/premium')} /> : null}
             <Button label="돌아가기" kind="secondary" onPress={goBack} />
           </div>
         </Screen>
@@ -115,6 +121,7 @@ export default function Profile() {
       name: name.trim(),
       ...draft,
       bloodType,
+      gender,
       familyEvents: events.map((e) => ({ ...e, label: e.label.trim() })),
       createdAt: existing?.createdAt ?? Date.now(),
     };
@@ -187,6 +194,24 @@ export default function Profile() {
                 시간을 몰라도 괜찮아요. 태어난 시간 두 글자만 빼고 계산해요.
               </p>
             )}
+          </Field>
+
+          <Field label="성별 (선택)">
+            <div className="segment" role="radiogroup" aria-label="성별">
+              {(
+                [
+                  ['M', '남자'],
+                  ['F', '여자'],
+                ] as const
+              ).map(([v, label]) => (
+                <button key={v} type="button" role="radio" aria-checked={gender === v} className={gender === v ? 'on' : ''} onClick={() => setGender(gender === v ? null : v)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="faint small" style={{ margin: '8px 0 0' }}>
+              넣으면 10년 단위 운의 흐름(대운)을 볼 수 있어요.
+            </p>
           </Field>
 
           <Field label="혈액형 (선택)">

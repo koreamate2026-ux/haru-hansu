@@ -280,6 +280,12 @@ input { font: inherit; }
 .choice-arrow { color: var(--gold); font-size: 24px; line-height: 1; flex: none; }
 
 /* 하루 한수 플러스 */
+.detail-head { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
+.luck { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.luck.now { padding: 16px; border: 2px solid var(--gold); border-radius: 16px; }
+.luck-top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.luck-top .hanja { font-size: 22px; }
+.locked { border: 1px dashed var(--line); }
 .benefits { list-style: none; margin: 0 0 24px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .benefits li { display: flex; gap: 10px; font-size: 15px; line-height: 22px; }
 .benefits li > span:first-child { color: var(--gold); font-weight: 700; width: 14px; flex: none; }

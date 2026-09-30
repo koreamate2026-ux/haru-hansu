@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { premiumOf } from '../lib/billing.js';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
 
@@ -28,7 +29,11 @@ householdsRouter.get('/mine', async (req, res) => {
     where: { accountId: req.accountId! },
     include: { household: { include: { persons: true } } },
   });
-  res.json(memberships.map((m) => ({ ...m.household, role: m.role })));
+  // plus: 그룹을 만든 사람이 플러스라서 이 그룹은 인원 제한이 없는지
+  const list = await Promise.all(
+    memberships.map(async (m) => ({ ...m.household, role: m.role, plus: await premiumOf(m.household.ownerId) })),
+  );
+  res.json(list);
 });
 
 /** 요청자가 그 household의 멤버인지 확인. 아니면 404(존재를 노출하지 않음) */

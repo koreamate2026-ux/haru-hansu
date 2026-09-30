@@ -4,6 +4,7 @@ import { Body, Button, Screen, Section, Title } from '../components/ui';
 import { DEFAULT_DRAW_API } from '../lib/draws';
 import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
+import { BusinessInfo } from './Legal';
 import { useBilling } from '../state/BillingState';
 
 /** 이 화면은 로그인해야만 들어올 수 있어서(App.tsx의 로그인 게이트) account는 항상 있다 */
@@ -93,7 +94,7 @@ function PlusSection() {
             ? `이용 중이에요. ${endLabel}까지 이용하고 해지돼요.`
             : `이용 중이에요. 다음 결제일은 ${endLabel}이에요.`
           : status?.enabled
-            ? '월 1,900원으로 광고 없이, 가족·친구를 인원 제한 없이 등록할 수 있어요.'
+            ? '월 1,900원으로 광고 없이, 자세한 사주 풀이와 번호 기록 분석까지. 내가 만든 가족 그룹은 인원 제한도 없어요.'
             : '광고 없이 쓰는 월 1,900원 구독을 준비하고 있어요.'}
       </Body>
       <Button label={premium ? '구독 관리' : '플러스 알아보기'} kind={premium ? 'secondary' : 'primary'} onPress={() => navigate('/premium')} />
@@ -169,12 +170,22 @@ export default function Settings() {
         <button type="button" className="list-row" onClick={() => navigate('/about')}>
           번호를 고르는 방법
         </button>
+        <button type="button" className="list-row" onClick={() => navigate('/legal/terms')}>
+          이용약관
+        </button>
+        <button type="button" className="list-row" onClick={() => navigate('/legal/refund')}>
+          환불 정책
+        </button>
+        <button type="button" className="list-row" onClick={() => navigate('/legal/privacy')}>
+          개인정보처리방침
+        </button>
         <Body dim small style={{ marginTop: 8 }}>
           가족 계정에 로그인해야 사람·번호함을 볼 수 있어요. 이메일·이름·가족 그룹 이름은 서버에 저장되고, 당첨번호를 조회할 때만 회차 번호가 조회 주소로 전송돼요.
         </Body>
       </Section>
 
       <Button label="모든 정보 지우기" kind="danger" onPress={onReset} />
+      <BusinessInfo />
     </Screen>
   );
 }

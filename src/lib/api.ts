@@ -4,7 +4,15 @@
  */
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || '/api';
 
-export class ApiError extends Error {}
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    /** 서버가 알려준 오류 종류(예: FAMILY_LIMIT) */
+    public code?: string,
+  ) {
+    super(message);
+  }
+}
 
 async function request<T>(path: string, opts: RequestInit = {}, token?: string): Promise<T> {
   let res: Response;
@@ -21,7 +29,7 @@ async function request<T>(path: string, opts: RequestInit = {}, token?: string):
     throw new ApiError('서버에 연결할 수 없어요. 인터넷 연결을 확인해 주세요.');
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(data.error || '요청이 실패했어요.');
+  if (!res.ok) throw new ApiError(data.error || '요청이 실패했어요.', data.code);
   return data as T;
 }
 
@@ -42,6 +50,8 @@ export interface ApiHousehold {
   ownerId: string;
   createdAt: string;
   role?: 'owner' | 'member';
+  /** 그룹을 만든 사람이 플러스라서 인원 제한이 없는지 */
+  plus?: boolean;
 }
 
 export interface ApiFamilyEvent {
@@ -62,6 +72,7 @@ export interface ApiPerson {
   birthHour: number | null;
   birthMinute: number;
   bloodType: 'A' | 'B' | 'O' | 'AB' | null;
+  gender: 'M' | 'F' | null;
   familyEvents: ApiFamilyEvent[];
   createdAt: string;
   updatedAt: string;
@@ -131,6 +142,11 @@ export const api = {
   billingCancel: (token: string) => request<BillingStatus>('/billing/cancel', { method: 'POST' }, token),
 
   billingResume: (token: string) => request<BillingStatus>('/billing/resume', { method: 'POST' }, token),
+
+  billingChangePlan: (plan: PlanId, token: string) =>
+    request<BillingStatus>('/billing/plan', { method: 'POST', body: JSON.stringify({ plan }) }, token),
+
+  billingRefund: (token: string) => request<BillingStatus & { refunded: number }>('/billing/refund', { method: 'POST' }, token),
 };
 
 export type PlanId = 'monthly' | 'yearly';
@@ -139,9 +155,13 @@ export interface BillingStatus {
   enabled: boolean;
   premium: boolean;
   plan: PlanId | null;
+  /** 다음 결제부터 바뀔 요금제 */
+  nextPlan: PlanId | null;
   status: 'pending' | 'active' | 'past_due' | 'expired' | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  refund: { refundable: boolean; amount: number; reason: string };
+  freePersonLimit: number;
   plans: Record<PlanId, { amount: number; months: number }>;
 }
 

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { FREE_PERSON_LIMIT, billingEnabled, premiumOf } from '../lib/billing.js';
+import { FREE_PERSON_LIMIT, billingEnabled, householdPlus } from '../lib/billing.js';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
 import { assertMember } from './households.js';
@@ -24,6 +24,7 @@ const personSchema = z.object({
   birthHour: z.number().int().min(0).max(23).nullable().default(null),
   birthMinute: z.number().int().min(0).max(59).default(0),
   bloodType: z.enum(['A', 'B', 'O', 'AB']).nullable().default(null),
+  gender: z.enum(['M', 'F']).nullable().default(null),
   /** 최대 2개. 채워지지 않은 자리(월/일이 0)는 저장하지 않는다 */
   familyEvents: z.array(familyEventSchema).max(2).optional(),
 });
@@ -71,13 +72,13 @@ personsRouter.post('/', async (req, res) => {
   if (!householdId) return;
   const parsed = personSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? '입력을 확인해 주세요.' });
-  // 이미 한도보다 많이 등록된 그룹도 기존 사람은 그대로 두고, 새로 추가할 때만 막는다.
-  // 결제가 꺼져 있으면 플러스로 올릴 방법이 없으니 제한하지 않는다
-  if (billingEnabled() && !(await premiumOf(req.accountId!))) {
+  // 인원 제한은 그룹을 만든 사람이 플러스인지로 판단한다. 이미 한도보다 많이 등록된 그룹도
+  // 기존 사람은 그대로 두고, 새로 추가할 때만 막는다. 결제가 꺼져 있으면 올릴 방법이 없으니 제한하지 않는다
+  if (billingEnabled() && !(await householdPlus(householdId))) {
     const count = await prisma.person.count({ where: { householdId } });
     if (count >= FREE_PERSON_LIMIT) {
       return res.status(403).json({
-        error: `무료로는 ${FREE_PERSON_LIMIT}명까지 등록할 수 있어요. 하루 한수 플러스로 제한 없이 추가해 보세요.`,
+        error: `무료 가족 그룹은 ${FREE_PERSON_LIMIT}명까지 등록할 수 있어요. 그룹을 만든 분이 하루 한수 플러스를 이용하면 제한 없이 추가할 수 있어요.`,
         code: 'FAMILY_LIMIT',
       });
     }
