@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { Body, Button, Header, Screen, Section, Segmented } from '../components/ui';
 import { ApiError, type ApiFavoriteInput } from '../lib/api';
 import { FigureArt } from '../components/FigureArt';
-import { FIGURE_CATEGORIES, HISTORICAL, type FigureCategory } from '../lib/historical';
+import { FAMOUS, GROUPS, type FamousGroup } from '../lib/famous';
 import { BirthDateError, HISTORIC_MIN_YEAR, toSolar } from '../lib/saju';
 import { useAuth } from '../state/AuthState';
 import { useBilling } from '../state/BillingState';
@@ -11,14 +11,15 @@ import { useFavorites } from '../state/FavoritesState';
 
 const birthLabel = (calendar: 'solar' | 'lunar', y: number, m: number, d: number) => `${calendar === 'lunar' ? '음력' : '양력'} ${y}.${m}.${d}`;
 
-/** 좋아하는 연예인·위인 관리(플러스 전용). 위인은 목록에서, 연예인은 직접 입력 */
+/** 좋아하는 연예인·위인 관리(플러스 전용). 위인·스타는 목록에서, 목록에 없는 사람은 직접 입력 */
 export default function Favorites() {
   const navigate = useNavigate();
   const { account } = useAuth();
   const { loaded, premium } = useBilling();
   const { favorites, active, setActive, add, remove } = useFavorites();
-  const [tab, setTab] = useState<'historical' | 'custom'>('historical');
-  const [figureCat, setFigureCat] = useState<FigureCategory | '전체'>('전체');
+  const [tab, setTab] = useState<FamousGroup | 'custom'>('historical');
+  const [figureCat, setFigureCat] = useState('전체');
+  const [query, setQuery] = useState('');
   const [name, setName] = useState('');
   const [calendar, setCalendar] = useState<'solar' | 'lunar'>('solar');
   const [year, setYear] = useState('');
@@ -105,6 +106,8 @@ export default function Favorites() {
 
   const takenKeys = new Set(favorites.map((f) => f.historicalKey).filter(Boolean));
   const digits = (v: string) => v.replace(/[^0-9]/g, '');
+  const group = GROUPS.find((g) => g.id === tab);
+  const q = query.replace(/\s/g, '');
 
   return (
     <>
@@ -149,71 +152,90 @@ export default function Favorites() {
           <div style={{ marginBottom: 16 }}>
             <Segmented
               value={tab}
-              onChange={setTab}
+              onChange={(v) => {
+                setTab(v);
+                setFigureCat('전체');
+                setQuery('');
+              }}
               options={[
-                { value: 'historical', label: '위인 목록' },
-                { value: 'custom', label: '직접 입력' },
+                ...GROUPS.map((g) => ({ value: g.id, label: g.label })),
+                { value: 'custom' as const, label: '직접 입력' },
               ]}
             />
           </div>
 
-          {tab === 'historical' ? (
+          {group ? (
             <>
+              <input className="input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름으로 찾기" aria-label="이름으로 찾기" style={{ marginBottom: 12 }} />
               <div className="chips" style={{ marginBottom: 12 }}>
-                {(['전체', ...FIGURE_CATEGORIES] as const).map((c) => (
+                {['전체', ...group.categories].map((c) => (
                   <button key={c} type="button" className={figureCat === c ? 'chip on' : 'chip'} onClick={() => setFigureCat(c)}>
                     {c}
                   </button>
                 ))}
               </div>
-              {FIGURE_CATEGORIES.filter((c) => figureCat === '전체' || figureCat === c).map((c) => (
-                <div key={c} style={{ marginBottom: 16 }}>
-                  {figureCat === '전체' ? <h3 className="detail-head">{c}</h3> : null}
-                  <div className="choices">
-                    {HISTORICAL.filter((h) => h.category === c).map((h) => {
-                      const taken = takenKeys.has(h.key);
-                      return (
-                        <button
-                          key={h.key}
-                          type="button"
-                          className="choice"
-                          disabled={taken || busy}
-                          onClick={() =>
-                            save({
-                              name: h.name,
-                              kind: 'historical',
-                              historicalKey: h.key,
-                              calendar: h.calendar,
-                              leapMonth: false,
-                              birthYear: h.year,
-                              birthMonth: h.month,
-                              birthDay: h.day,
-                              birthHour: null,
-                              birthMinute: 0,
-                            })
-                          }
-                        >
-                          <FigureArt figureKey={h.key} size={44} />
-                          <span className="choice-main">
-                            <span className="choice-title">{h.name}</span>
-                            <span className="choice-tag">
-                              {h.desc} · {birthLabel(h.calendar, h.year, h.month, h.day)}
-                            </span>
-                          </span>
-                          <span className={taken ? 'choice-hint' : 'choice-arrow'}>{taken ? '추가됨' : '＋'}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+              {group.categories
+                .filter((c) => figureCat === '전체' || figureCat === c)
+                .map((c) => {
+                  const people = FAMOUS.filter((h) => h.group === group.id && h.category === c && (!q || h.name.replace(/\s/g, '').includes(q)));
+                  if (!people.length) return null;
+                  return (
+                    <div key={c} style={{ marginBottom: 16 }}>
+                      {figureCat === '전체' ? <h3 className="detail-head">{c}</h3> : null}
+                      <div className="choices">
+                        {people.map((h) => {
+                          const taken = takenKeys.has(h.key);
+                          return (
+                            <button
+                              key={h.key}
+                              type="button"
+                              className="choice"
+                              disabled={taken || busy}
+                              onClick={() =>
+                                save({
+                                  name: h.name,
+                                  kind: 'historical',
+                                  historicalKey: h.key,
+                                  calendar: h.calendar,
+                                  leapMonth: false,
+                                  birthYear: h.year,
+                                  birthMonth: h.month,
+                                  birthDay: h.day,
+                                  birthHour: null,
+                                  birthMinute: 0,
+                                })
+                              }
+                            >
+                              <FigureArt figureKey={h.key} size={44} />
+                              <span className="choice-main">
+                                <span className="choice-title">{h.name}</span>
+                                <span className="choice-tag">
+                                  {h.desc} · {birthLabel(h.calendar, h.year, h.month, h.day)}
+                                </span>
+                                <span className="choice-intro">{h.intro}</span>
+                              </span>
+                              <span className={taken ? 'choice-hint' : 'choice-arrow'}>{taken ? '추가됨' : '＋'}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              {q && !FAMOUS.some((h) => h.group === group.id && h.name.replace(/\s/g, '').includes(q)) ? (
+                <Body dim small>
+                  목록에 없어요. '직접 입력'에서 이름과 생일을 넣어 주세요.
+                </Body>
+              ) : null}
               <p className="notice" style={{ marginTop: 12 }}>
-                생일은 널리 알려진 기록을 따랐어요. 태어난 시간은 알 수 없어서 시간 없이 계산해요.
+                {group.id === 'historical'
+                  ? '생일은 널리 알려진 기록을 따랐어요(조선 시대 인물은 음력). 태어난 시간은 알 수 없어서 시간 없이 계산해요.'
+                  : '생일은 공개된 프로필을 따랐어요. 태어난 시간은 알 수 없어서 시간 없이 계산해요. 재미로 보는 궁합이며 해당 인물과 관계없어요.'}
               </p>
             </>
           ) : (
             <div className="stack">
-              <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="이름 (예: 좋아하는 가수)" maxLength={20} aria-label="이름" />
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="이름" maxLength={20} aria-label="이름" />
               <Segmented
                 value={calendar}
                 onChange={setCalendar}
@@ -228,7 +250,7 @@ export default function Favorites() {
                 <input className="input" value={day} onChange={(e) => setDay(digits(e.target.value))} placeholder="일" inputMode="numeric" maxLength={2} style={{ flex: 1 }} aria-label="태어난 날" />
               </div>
               <Button label={busy ? '추가하는 중…' : '추가하기'} onPress={addCustom} disabled={busy || !name.trim() || year.length !== 4 || !month || !day} />
-              <p className="notice">연예인처럼 목록에 없는 사람은 이름과 생일을 직접 넣어 주세요. 입력한 정보는 내 계정에만 저장돼요.</p>
+              <p className="notice">목록에 없는 사람은 이름과 생일을 직접 넣어 주세요. 입력한 정보는 내 계정에만 저장돼요.</p>
             </div>
           )}
         </Section>

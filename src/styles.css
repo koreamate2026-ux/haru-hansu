@@ -276,6 +276,10 @@ input { font: inherit; }
 .choice-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .choice-title { font-weight: 700; font-size: 16px; }
 .choice-tag { color: var(--text-faint); font-size: 13px; }
+.choice-intro { color: var(--text-dim); font-size: 13px; line-height: 19px; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.figure-intro { padding: 16px; border: 1px solid var(--line); border-radius: 14px; }
+.figure-quote { margin: 12px 0 0; padding: 10px 14px; border-left: 3px solid var(--gold); background: var(--surface); border-radius: 0 10px 10px 0; font-family: var(--font-display); font-size: 15px; line-height: 24px; }
+.figure-quote cite { display: block; margin-top: 4px; font-family: inherit; font-style: normal; font-size: 12px; color: var(--text-faint); }
 .choice-hint { color: var(--text-faint); font-size: 12px; flex: none; }
 .choice-arrow { color: var(--gold); font-size: 24px; line-height: 1; flex: none; }
 

@@ -5,6 +5,7 @@ import { FigureArt } from '../components/FigureArt';
 import { PlusOnly, TodayNumberCard } from '../components/PlusDetail';
 import { Body, Button, Header, Screen, Section } from '../components/ui';
 import { ELEMENTS } from '../lib/elements';
+import { famousOf } from '../lib/famous';
 import { elementLabel, pairText, relationBetween, zodiacMatch } from '../lib/plusDetail';
 import { HISTORIC_MIN_YEAR, computeChart } from '../lib/saju';
 import { REL_NAME } from '../lib/sajuDetail';
@@ -59,6 +60,7 @@ function FavoriteBody() {
   }
 
   const me = activeProfile;
+  const figure = famousOf(active.historicalKey);
   const rel = activeChart && theirs ? relationBetween(activeChart, theirs) : null;
   const z = activeChart && theirs ? zodiacMatch(activeChart, theirs) : null;
 
@@ -77,6 +79,26 @@ function FavoriteBody() {
         ) : null}
 
         {cat && !cat.empty ? <TodayNumberCard category={cat} /> : null}
+
+        {figure ? (
+          <Section title={`${figure.name} 님은`}>
+            <div className="figure-intro">
+              <div className="row" style={{ alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <FigureArt figureKey={figure.key} size={52} />
+                <div>
+                  <strong>{figure.name}</strong>
+                  <div className="faint small">{figure.desc}</div>
+                </div>
+              </div>
+              <Body small>{figure.intro}</Body>
+              {figure.quote ? (
+                <blockquote className="figure-quote">
+                  “{figure.quote}”<cite>— {figure.name}</cite>
+                </blockquote>
+              ) : null}
+            </div>
+          </Section>
+        ) : null}
 
         {me && activeChart && theirs && rel && z ? (
           <>
@@ -126,7 +148,7 @@ function FavoriteBody() {
 
         <Button label="좋아하는 사람 바꾸기·추가" kind="secondary" onPress={() => navigate('/favorites')} />
         <p className="notice" style={{ marginTop: 12 }}>
-          재미로 보는 궁합이에요. {active.kind === 'historical' ? '위인의 생일은 널리 알려진 기록을 따랐어요.' : ''}
+          재미로 보는 궁합이에요. {figure ? (figure.group === 'historical' ? '위인의 생일은 널리 알려진 기록을 따랐어요.' : '생일은 공개된 프로필을 따랐고, 해당 인물과는 관계없어요.') : ''}
         </p>
       </Screen>
     </>
