@@ -1,42 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdSenseBanner } from '../components/Ads';
 import { BallRow, LottoBall } from '../components/LottoBall';
 import { NumberPicker } from '../components/NumberPicker';
 import { Body, Button, Screen, useToast } from '../components/ui';
-import { DREAMS, familyCompat, luckyCategories, type DreamKey } from '../lib/luckyNumbers';
+import { DREAMS, type DreamKey } from '../lib/luckyNumbers';
 import { newId } from '../lib/random';
 import { upcomingRound } from '../lib/rounds';
+import { MAX_DAILY_PICKS, useDailyPicks, useTodayCategories } from '../lib/todayNumbers';
 import { useApp } from '../state/AppState';
-
-const MAX_DAILY_PICKS = 6;
 
 export default function ThisWeek() {
   const navigate = useNavigate();
   const toast = useToast();
   const { profiles, activeProfile, activeChart, addTicket, hasTicket, todayDream, setTodayDream } = useApp();
   const [openKey, setOpenKey] = useState<string | null>(null);
-  const [rolls] = useState<Record<string, number>>({});
-  const globalRoll = 0;
-  const [pickedNums, setPickedNums] = useState<number[]>([]);
+  const { now, categories: allCategories } = useTodayCategories();
+  const { picks: pickedNums, toggle: togglePicked, clear: clearPicked } = useDailyPicks();
   const [pickerOpen, setPickerOpen] = useState(false);
-
-  const now = useMemo(() => new Date(), []);
-  const todayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-
-  const categories = useMemo(
-    () =>
-      activeProfile && activeChart
-        ? luckyCategories(activeProfile, activeChart, { dream: todayDream, todayKey, now, rolls, globalRoll })
-        : null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeProfile, activeChart, todayDream, todayKey, rolls, globalRoll],
-  );
-
-  const familyCat = useMemo(
-    () => familyCompat(profiles, { todayKey, rolls, globalRoll }),
-    [profiles, todayKey, rolls, globalRoll],
-  );
 
   useEffect(() => {
     if (!openKey) return;
@@ -45,7 +26,7 @@ export default function ThisWeek() {
     return () => window.removeEventListener('keydown', onKey);
   }, [openKey]);
 
-  if (!activeProfile || !activeChart || !categories) {
+  if (!activeProfile || !activeChart || !allCategories) {
     return (
       <Screen tabs>
         <Body>정보를 불러오지 못했어요. 설정에서 생년월일을 다시 확인해 주세요.</Body>
@@ -54,33 +35,12 @@ export default function ThisWeek() {
   }
 
   const round = upcomingRound();
-  // 오행 숫자 바로 다음에 가족 궁합 숫자를 끼워 넣는다
-  const allCategories = [...categories.slice(0, 2), familyCat, ...categories.slice(2)];
   const open = allCategories.find((c) => c.key === openKey) ?? null;
-
-  // 오늘의 숫자에 하나 담는다(이미 담겼거나 6개 다 찼으면 그대로 둔다)
-  const togglePicked = (n: number) =>
-    setPickedNums((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : prev.length < MAX_DAILY_PICKS ? [...prev, n] : prev));
-
-  // 누를 때마다 아직 안 담은 카테고리 행운 숫자를 무작위로 하나 더한다
-  const addDailyNum = () => {
-    if (pickedNums.length >= MAX_DAILY_PICKS) return;
-    const pool = allCategories.filter((c) => !c.empty).map((c) => c.nums[0]);
-    const fromPool = pool.filter((n) => !pickedNums.includes(n));
-    let next: number;
-    if (fromPool.length) {
-      next = fromPool[Math.floor(Math.random() * fromPool.length)];
-    } else {
-      const remaining = Array.from({ length: 45 }, (_, i) => i + 1).filter((n) => !pickedNums.includes(n));
-      next = remaining[Math.floor(Math.random() * remaining.length)];
-    }
-    togglePicked(next);
-  };
 
   const onSaveDailyPick = () => {
     if (pickedNums.length !== MAX_DAILY_PICKS) return;
     onSaveTicket(pickedNums, 'today-pick');
-    setPickedNums([]);
+    clearPicked();
   };
 
   const onSaveTicket = (nums: number[], category: string, personIds?: string[]) => {
@@ -143,7 +103,7 @@ export default function ThisWeek() {
               disabled={hasTicket(round, pickedNums)}
             />
           ) : (
-            <Button label={`추가하기 (${pickedNums.length}/${MAX_DAILY_PICKS})`} onPress={addDailyNum} />
+            <Button label={`추가하기 (${pickedNums.length}/${MAX_DAILY_PICKS})`} onPress={() => navigate('/add-number')} />
           )}
           <div className="row">
             <div style={{ flex: 1 }}>
@@ -151,7 +111,7 @@ export default function ThisWeek() {
             </div>
             {pickedNums.length ? (
               <div style={{ flex: 1 }}>
-                <Button label="초기화" kind="secondary" onPress={() => setPickedNums([])} />
+                <Button label="초기화" kind="secondary" onPress={clearPicked} />
               </div>
             ) : null}
           </div>

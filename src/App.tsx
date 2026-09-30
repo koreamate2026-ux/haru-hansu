@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { HashRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { TabBar } from './components/ui';
 import About from './pages/About';
+import AddNumber from './pages/AddNumber';
 import DrawEntry from './pages/DrawEntry';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
@@ -52,6 +53,7 @@ export default function App() {
               <Route path="welcome" element={<Navigate to="/login" replace />} />
               <Route path="signup" element={<Signup />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="add-number" element={<AddNumber />} />
               <Route path="ticket-new" element={<TicketNew />} />
               <Route path="draw-entry/:round" element={<DrawEntry />} />
               <Route path="about" element={<About />} />

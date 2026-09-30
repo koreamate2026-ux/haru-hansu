@@ -256,6 +256,29 @@ input { font: inherit; }
 }
 .hero-main:active { opacity: 0.85; }
 
+/* 숫자 추가하기 선택지 */
+.choices { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.choice {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.choice:active:not(:disabled) { opacity: 0.6; }
+.choice:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.choice:disabled { cursor: default; opacity: 0.45; }
+.choice-emoji { font-size: 1.5rem; line-height: 1; width: 32px; text-align: center; flex: none; }
+.choice-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.choice-title { font-weight: 700; font-size: 16px; }
+.choice-tag { color: var(--text-faint); font-size: 13px; }
+.choice-hint { color: var(--text-faint); font-size: 12px; flex: none; }
+.choice-arrow { color: var(--gold); font-size: 24px; line-height: 1; flex: none; }
+
 /* 광고 자리 */
 .ad-slot {
   margin-top: 16px;
