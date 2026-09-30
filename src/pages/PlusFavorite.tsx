@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ElementBars } from '../components/ElementBars';
+import { FigureArt } from '../components/FigureArt';
 import { PlusOnly, TodayNumberCard } from '../components/PlusDetail';
 import { Body, Button, Header, Screen, Section } from '../components/ui';
 import { ELEMENTS } from '../lib/elements';
@@ -88,6 +89,7 @@ function FavoriteBody() {
                   <span className="faint small">{activeChart.animal}띠</span>
                 </div>
                 <div>
+                  {active.historicalKey ? <FigureArt figureKey={active.historicalKey} size={52} /> : null}
                   <span className="dim small">{active.name}</span>
                   <strong className="hanja">{theirs.dayMaster.hanja}</strong>
                   <span className="small">{elementLabel(theirs.dayMaster.element)}</span>

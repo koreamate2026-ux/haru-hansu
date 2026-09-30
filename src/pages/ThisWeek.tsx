@@ -10,6 +10,8 @@ import { upcomingRound } from '../lib/rounds';
 import { MAX_DAILY_PICKS, useDailyPicks, useTodayCategories } from '../lib/todayNumbers';
 import { useApp } from '../state/AppState';
 import { useBilling } from '../state/BillingState';
+import { useFavorites } from '../state/FavoritesState';
+import { FigureArt } from '../components/FigureArt';
 
 const PERSONAL_KEYS = new Set(['zodiac', 'ohaeng', 'star', 'blood', 'stone', 'name', 'dream', 'today', 'lucky']);
 const FAMILY_KEYS = new Set(['compat', 'family']);
@@ -30,6 +32,7 @@ export default function ThisWeek() {
   const { picks: pickedNums, toggle: togglePicked, clear: clearPicked } = useDailyPicks();
   const [pickerOpen, setPickerOpen] = useState(false);
   const { premium } = useBilling();
+  const { active: favorite } = useFavorites();
 
   useEffect(() => {
     if (!openKey) return;
@@ -52,9 +55,13 @@ export default function ThisWeek() {
 
   const tile = (c: (typeof allCategories)[number]) => (
     <button key={c.key} type="button" className={c.empty ? 'tile dim' : 'tile'} onClick={() => (PLUS_PAGES[c.key] ? navigate(PLUS_PAGES[c.key]) : setOpenKey(c.key))}>
-      <span className="tile-icon" aria-hidden>
-        {c.emoji}
-      </span>
+      {c.key === 'favorite' && favorite?.historicalKey ? (
+        <FigureArt figureKey={favorite.historicalKey} size={40} />
+      ) : (
+        <span className="tile-icon" aria-hidden>
+          {c.emoji}
+        </span>
+      )}
       <span className="tile-label">{c.title}</span>
       {c.empty ? <span className="tile-hint">정보 필요</span> : null}
     </button>

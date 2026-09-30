@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Body, Button, Header, Screen, Section, Segmented } from '../components/ui';
 import { ApiError, type ApiFavoriteInput } from '../lib/api';
-import { HISTORICAL } from '../lib/historical';
+import { FigureArt } from '../components/FigureArt';
+import { FIGURE_CATEGORIES, HISTORICAL, type FigureCategory } from '../lib/historical';
 import { BirthDateError, HISTORIC_MIN_YEAR, toSolar } from '../lib/saju';
 import { useAuth } from '../state/AuthState';
 import { useBilling } from '../state/BillingState';
@@ -17,6 +18,7 @@ export default function Favorites() {
   const { loaded, premium } = useBilling();
   const { favorites, active, setActive, add, remove } = useFavorites();
   const [tab, setTab] = useState<'historical' | 'custom'>('historical');
+  const [figureCat, setFigureCat] = useState<FigureCategory | '전체'>('전체');
   const [name, setName] = useState('');
   const [calendar, setCalendar] = useState<'solar' | 'lunar'>('solar');
   const [year, setYear] = useState('');
@@ -121,6 +123,7 @@ export default function Favorites() {
                 const on = f.id === active?.id;
                 return (
                   <div key={f.id} className="person" style={{ borderColor: on ? 'var(--gold)' : 'transparent' }}>
+                    {f.historicalKey ? <FigureArt figureKey={f.historicalKey} size={40} /> : <span className="figure-art" style={{ width: 40, height: 40 }} aria-hidden>💖</span>}
                     <button type="button" className="person-main" onClick={() => setActive(f.id)} aria-pressed={on}>
                       <div className="person-name">
                         {f.name}
@@ -156,41 +159,54 @@ export default function Favorites() {
 
           {tab === 'historical' ? (
             <>
-              <div className="choices">
-                {HISTORICAL.map((h) => {
-                  const taken = takenKeys.has(h.key);
-                  return (
-                    <button
-                      key={h.key}
-                      type="button"
-                      className="choice"
-                      disabled={taken || busy}
-                      onClick={() =>
-                        save({
-                          name: h.name,
-                          kind: 'historical',
-                          historicalKey: h.key,
-                          calendar: h.calendar,
-                          leapMonth: false,
-                          birthYear: h.year,
-                          birthMonth: h.month,
-                          birthDay: h.day,
-                          birthHour: null,
-                          birthMinute: 0,
-                        })
-                      }
-                    >
-                      <span className="choice-main">
-                        <span className="choice-title">{h.name}</span>
-                        <span className="choice-tag">
-                          {h.desc} · {birthLabel(h.calendar, h.year, h.month, h.day)}
-                        </span>
-                      </span>
-                      <span className={taken ? 'choice-hint' : 'choice-arrow'}>{taken ? '추가됨' : '＋'}</span>
-                    </button>
-                  );
-                })}
+              <div className="chips" style={{ marginBottom: 12 }}>
+                {(['전체', ...FIGURE_CATEGORIES] as const).map((c) => (
+                  <button key={c} type="button" className={figureCat === c ? 'chip on' : 'chip'} onClick={() => setFigureCat(c)}>
+                    {c}
+                  </button>
+                ))}
               </div>
+              {FIGURE_CATEGORIES.filter((c) => figureCat === '전체' || figureCat === c).map((c) => (
+                <div key={c} style={{ marginBottom: 16 }}>
+                  {figureCat === '전체' ? <h3 className="detail-head">{c}</h3> : null}
+                  <div className="choices">
+                    {HISTORICAL.filter((h) => h.category === c).map((h) => {
+                      const taken = takenKeys.has(h.key);
+                      return (
+                        <button
+                          key={h.key}
+                          type="button"
+                          className="choice"
+                          disabled={taken || busy}
+                          onClick={() =>
+                            save({
+                              name: h.name,
+                              kind: 'historical',
+                              historicalKey: h.key,
+                              calendar: h.calendar,
+                              leapMonth: false,
+                              birthYear: h.year,
+                              birthMonth: h.month,
+                              birthDay: h.day,
+                              birthHour: null,
+                              birthMinute: 0,
+                            })
+                          }
+                        >
+                          <FigureArt figureKey={h.key} size={44} />
+                          <span className="choice-main">
+                            <span className="choice-title">{h.name}</span>
+                            <span className="choice-tag">
+                              {h.desc} · {birthLabel(h.calendar, h.year, h.month, h.day)}
+                            </span>
+                          </span>
+                          <span className={taken ? 'choice-hint' : 'choice-arrow'}>{taken ? '추가됨' : '＋'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
               <p className="notice" style={{ marginTop: 12 }}>
                 생일은 널리 알려진 기록을 따랐어요. 태어난 시간은 알 수 없어서 시간 없이 계산해요.
               </p>
