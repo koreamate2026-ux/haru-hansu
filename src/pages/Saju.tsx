@@ -36,8 +36,6 @@ export default function Saju() {
 
   return (
     <Screen tabs>
-      <Title sub={`${birth} · ${c.animal}띠 · ${p.calendar === 'lunar' ? `양력 ${c.solarDate}` : c.lunarLabel}`}>{p.name}님의 사주</Title>
-
       <div className="card fortune">
         <div className="fortune-head">
           <div style={{ flex: 1 }}>
@@ -67,6 +65,8 @@ export default function Saju() {
           </Body>
         </div>
       </div>
+
+      <Title sub={`${birth} · ${c.animal}띠 · ${p.calendar === 'lunar' ? `양력 ${c.solarDate}` : c.lunarLabel}`}>{p.name}님의 사주</Title>
 
       <Section>
         <PillarTable chart={c} />
