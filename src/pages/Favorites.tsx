@@ -212,7 +212,6 @@ export default function Favorites() {
                                 <span className="choice-tag">
                                   {h.desc} · {birthLabel(h.calendar, h.year, h.month, h.day)}
                                 </span>
-                                <span className="choice-intro">{h.intro}</span>
                               </span>
                               <span className={taken ? 'choice-hint' : 'choice-arrow'}>{taken ? '추가됨' : '＋'}</span>
                             </button>

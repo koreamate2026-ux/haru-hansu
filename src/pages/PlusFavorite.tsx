@@ -80,23 +80,11 @@ function FavoriteBody() {
 
         {cat && !cat.empty ? <TodayNumberCard category={cat} /> : null}
 
-        {figure ? (
-          <Section title={`${figure.name} 님은`}>
-            <div className="figure-intro">
-              <div className="row" style={{ alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                <FigureArt figureKey={figure.key} size={52} />
-                <div>
-                  <strong>{figure.name}</strong>
-                  <div className="faint small">{figure.desc}</div>
-                </div>
-              </div>
-              <Body small>{figure.intro}</Body>
-              {figure.quote ? (
-                <blockquote className="figure-quote">
-                  “{figure.quote}”<cite>— {figure.name}</cite>
-                </blockquote>
-              ) : null}
-            </div>
+        {figure?.quote ? (
+          <Section title={`${figure.name} 님이 남긴 말`}>
+            <blockquote className="figure-quote" style={{ marginTop: 0 }}>
+              “{figure.quote}”
+            </blockquote>
           </Section>
         ) : null}
 
