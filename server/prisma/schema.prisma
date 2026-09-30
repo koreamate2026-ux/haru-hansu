@@ -24,8 +24,53 @@ model Account {
   memberships      HouseholdMember[]
   ownedHouseholds  Household[]        @relation("HouseholdOwner")
   createdTickets   SavedTicket[]
+  subscription     Subscription?
 
   @@map("accounts")
+}
+
+/// 하루 한수 플러스 구독. 계정(개인) 단위로 하나. 결제 전에도 customerKey를 담아 두려고 pending 상태로 먼저 만든다
+model Subscription {
+  id                String    @id @default(uuid())
+  accountId         String    @unique
+  /// 토스 자동결제용 구매자 ID. 추측할 수 없게 무작위로 만든다
+  customerKey       String    @unique
+  /// monthly | yearly
+  plan              String    @default("monthly")
+  /// pending(카드 등록 전) | active | past_due(갱신 결제 실패, 재시도 중) | expired
+  status            String    @default("pending")
+  billingKey        String?
+  currentPeriodEnd  DateTime?
+  cancelAtPeriodEnd Boolean   @default(false)
+  failedAttempts    Int       @default(0)
+  lastAttemptAt     DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  account  Account              @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  payments SubscriptionPayment[]
+
+  @@map("subscriptions")
+}
+
+model SubscriptionPayment {
+  id             String   @id @default(uuid())
+  subscriptionId String
+  /// 같은 기간을 두 번 청구하지 않도록 기간마다 고정된 주문번호
+  orderId        String   @unique
+  plan           String
+  amount         Int
+  /// paid | failed
+  status         String
+  paymentKey     String?
+  failReason     String?
+  periodStart    DateTime
+  periodEnd      DateTime
+  createdAt      DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("subscription_payments")
 }
 
 model Household {

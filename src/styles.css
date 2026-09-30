@@ -279,6 +279,31 @@ input { font: inherit; }
 .choice-hint { color: var(--text-faint); font-size: 12px; flex: none; }
 .choice-arrow { color: var(--gold); font-size: 24px; line-height: 1; flex: none; }
 
+/* 하루 한수 플러스 */
+.benefits { list-style: none; margin: 0 0 24px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.benefits li { display: flex; gap: 10px; font-size: 15px; line-height: 22px; }
+.benefits li > span:first-child { color: var(--gold); font-weight: 700; width: 14px; flex: none; }
+.plans { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.plan {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.plan.on { border: 2px solid var(--gold); padding: 13px; }
+.plan:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.plan-name { font-size: 13px; color: var(--text-dim); font-weight: 600; }
+.plan-price { font-family: var(--font-display); font-weight: 700; font-size: 22px; }
+.plan-note { font-size: 12px; color: var(--text-faint); }
+.agree { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 19px; color: var(--text-dim); margin-bottom: 16px; cursor: pointer; }
+.agree input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--gold); flex: none; }
+
 /* 광고 자리 */
 .ad-slot {
   margin-top: 16px;

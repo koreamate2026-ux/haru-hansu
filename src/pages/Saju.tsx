@@ -8,21 +8,25 @@ import { Body, Button, Screen, Section, Title } from '../components/ui';
 import { ELEMENT_INFO } from '../lib/elements';
 import { DAY_MASTER_TEXT, STRENGTH_TEXT, dailyFortune } from '../lib/fortune';
 import { useApp } from '../state/AppState';
+import { useBilling } from '../state/BillingState';
 
 const STRENGTH_LABEL = { strong: '타고난 힘이 센 편', weak: '타고난 힘이 여린 편', balanced: '타고난 힘이 고른 편' } as const;
 
 export default function Saju() {
   const navigate = useNavigate();
   const { activeProfile, activeChart } = useApp();
+  const { loaded: billingLoaded, premium } = useBilling();
   const [adDone, setAdDone] = useState(!adFitPopupEnabled);
   const fortune = useMemo(
     () => (activeProfile && activeChart ? dailyFortune(activeProfile, activeChart) : null),
     [activeProfile, activeChart],
   );
-  if (!adDone) {
+  // 플러스 회원인지 확인되기 전에는 광고도 내용도 보여주지 않는다
+  if (!adDone && !billingLoaded) return <Screen tabs>{null}</Screen>;
+  if (!adDone && !premium) {
     return (
       <Screen tabs>
-        <AdFitPopup onClose={() => setAdDone(true)} />
+        <AdFitPopup onClose={() => setAdDone(true)} onUpgrade={() => navigate('/premium')} />
       </Screen>
     );
   }

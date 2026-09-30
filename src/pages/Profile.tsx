@@ -7,6 +7,7 @@ import { BirthDateError, toSolar } from '../lib/saju';
 import type { FamilyEvent, Profile as ProfileT } from '../lib/types';
 import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
+import { FREE_PERSON_LIMIT, useBilling } from '../state/BillingState';
 
 const EMPTY_EVENT: FamilyEvent = { label: '', month: 0, day: 0 };
 
@@ -42,8 +43,7 @@ export default function Profile() {
   const { account } = useAuth();
   const { profiles, upsertProfile, deleteProfile, setActiveProfile } = useApp();
   const existing = profiles.find((p) => p.id === id);
-
-  if (!account) return <Navigate to="/login" replace />;
+  const { loaded: billingLoaded, premium, status: billing } = useBilling();
 
   const [name, setName] = useState(existing?.name ?? '');
   const [calendar, setCalendar] = useState<ProfileT['calendar']>(existing?.calendar ?? 'solar');
@@ -82,6 +82,29 @@ export default function Profile() {
       return { ok: false as const, text: e instanceof BirthDateError ? e.message : '날짜를 다시 확인해 주세요.' };
     }
   }, [draft, year, month, day, hour, knowsTime, calendar]);
+
+  if (!account) return <Navigate to="/login" replace />;
+
+  // 무료 계정은 새 사람을 한도까지만 추가할 수 있다(이미 있는 사람 수정은 그대로)
+  if (!existing && billingLoaded && billing?.enabled && !premium && profiles.length >= FREE_PERSON_LIMIT) {
+    return (
+      <>
+        <Header title="가족·친구 추가" fallback="/settings" />
+        <Screen>
+          <h2 className="title" style={{ fontSize: 24, lineHeight: '34px' }}>
+            무료로는 {FREE_PERSON_LIMIT}명까지 등록할 수 있어요
+          </h2>
+          <p className="sub" style={{ margin: '8px 0 24px' }}>
+            하루 한수 플러스를 이용하면 가족과 친구를 인원 제한 없이 추가할 수 있어요.
+          </p>
+          <div className="stack">
+            <Button label="하루 한수 플러스 알아보기" onPress={() => navigate('/premium')} />
+            <Button label="돌아가기" kind="secondary" onPress={goBack} />
+          </div>
+        </Screen>
+      </>
+    );
+  }
 
   const onSave = () => {
     if (!name.trim()) return window.alert('이름을 입력해 주세요.\n같은 생일이라도 이름에 따라 번호 조합이 달라져요.');

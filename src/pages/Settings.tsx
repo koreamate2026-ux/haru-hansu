@@ -4,6 +4,7 @@ import { Body, Button, Screen, Section, Title } from '../components/ui';
 import { DEFAULT_DRAW_API } from '../lib/draws';
 import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
+import { useBilling } from '../state/BillingState';
 
 /** 이 화면은 로그인해야만 들어올 수 있어서(App.tsx의 로그인 게이트) account는 항상 있다 */
 function FamilySync() {
@@ -79,6 +80,27 @@ function FamilySync() {
   );
 }
 
+function PlusSection() {
+  const navigate = useNavigate();
+  const { premium, status } = useBilling();
+  const end = status?.currentPeriodEnd ? new Date(status.currentPeriodEnd) : null;
+  const endLabel = end ? `${end.getFullYear()}.${end.getMonth() + 1}.${end.getDate()}` : '';
+  return (
+    <Section title="하루 한수 플러스">
+      <Body dim small style={{ marginBottom: 12 }}>
+        {premium
+          ? status?.cancelAtPeriodEnd
+            ? `이용 중이에요. ${endLabel}까지 이용하고 해지돼요.`
+            : `이용 중이에요. 다음 결제일은 ${endLabel}이에요.`
+          : status?.enabled
+            ? '월 1,900원으로 광고 없이, 가족·친구를 인원 제한 없이 등록할 수 있어요.'
+            : '광고 없이 쓰는 월 1,900원 구독을 준비하고 있어요.'}
+      </Body>
+      <Button label={premium ? '구독 관리' : '플러스 알아보기'} kind={premium ? 'secondary' : 'primary'} onPress={() => navigate('/premium')} />
+    </Section>
+  );
+}
+
 export default function Settings() {
   const navigate = useNavigate();
   const { profiles, activeProfile, setActiveProfile, settings, updateSettings, resetAll } = useApp();
@@ -138,6 +160,8 @@ export default function Settings() {
           aria-label="당첨번호 조회 주소"
         />
       </Section>
+
+      <PlusSection />
 
       <FamilySync />
 

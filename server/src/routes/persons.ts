@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { FREE_PERSON_LIMIT, billingEnabled, premiumOf } from '../lib/billing.js';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
 import { assertMember } from './households.js';
@@ -70,6 +71,17 @@ personsRouter.post('/', async (req, res) => {
   if (!householdId) return;
   const parsed = personSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? '입력을 확인해 주세요.' });
+  // 이미 한도보다 많이 등록된 그룹도 기존 사람은 그대로 두고, 새로 추가할 때만 막는다.
+  // 결제가 꺼져 있으면 플러스로 올릴 방법이 없으니 제한하지 않는다
+  if (billingEnabled() && !(await premiumOf(req.accountId!))) {
+    const count = await prisma.person.count({ where: { householdId } });
+    if (count >= FREE_PERSON_LIMIT) {
+      return res.status(403).json({
+        error: `무료로는 ${FREE_PERSON_LIMIT}명까지 등록할 수 있어요. 하루 한수 플러스로 제한 없이 추가해 보세요.`,
+        code: 'FAMILY_LIMIT',
+      });
+    }
+  }
   const { familyEvents, ...data } = parsed.data;
   const person = await prisma.person.create({ data: { ...data, householdId } });
   await replaceFamilyEvents(householdId, person.id, familyEvents);

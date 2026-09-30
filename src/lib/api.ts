@@ -119,4 +119,35 @@ export const api = {
 
   deleteTicket: (householdId: string, ticketId: string, token: string) =>
     request<void>(`/households/${householdId}/tickets/${ticketId}`, { method: 'DELETE' }, token),
+
+  billingStatus: (token: string) => request<BillingStatus>('/billing/me', {}, token),
+
+  billingCheckout: (plan: PlanId, token: string) =>
+    request<BillingCheckout>('/billing/checkout', { method: 'POST', body: JSON.stringify({ plan }) }, token),
+
+  billingConfirm: (data: { authKey: string; customerKey: string; plan: PlanId }, token: string) =>
+    request<BillingStatus>('/billing/confirm', { method: 'POST', body: JSON.stringify(data) }, token),
+
+  billingCancel: (token: string) => request<BillingStatus>('/billing/cancel', { method: 'POST' }, token),
+
+  billingResume: (token: string) => request<BillingStatus>('/billing/resume', { method: 'POST' }, token),
 };
+
+export type PlanId = 'monthly' | 'yearly';
+
+export interface BillingStatus {
+  enabled: boolean;
+  premium: boolean;
+  plan: PlanId | null;
+  status: 'pending' | 'active' | 'past_due' | 'expired' | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  plans: Record<PlanId, { amount: number; months: number }>;
+}
+
+export interface BillingCheckout {
+  clientKey: string;
+  customerKey: string;
+  customerEmail: string;
+  customerName: string;
+}

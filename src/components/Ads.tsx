@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useBilling } from '../state/BillingState';
 
 /**
  * 광고 ID는 공개값이라 .env.production에 넣는다. 비어 있으면 광고 대신
@@ -35,9 +36,12 @@ function Placeholder({ label = '광고 영역' }: { label?: string }) {
 
 export function AdSenseBanner() {
   const pushed = useRef(false);
+  const { loaded, premium } = useBilling();
+  // 구독 여부를 모르는 동안에는 광고를 불러오지 않는다(플러스 회원에게 잠깐 보이는 것 방지)
+  const hidden = !loaded || premium;
 
   useEffect(() => {
-    if (!ADSENSE_CLIENT || !ADSENSE_SLOT || pushed.current) return;
+    if (hidden || !ADSENSE_CLIENT || !ADSENSE_SLOT || pushed.current) return;
     loadAdSenseScript(ADSENSE_CLIENT);
     pushed.current = true;
     try {
@@ -45,8 +49,9 @@ export function AdSenseBanner() {
     } catch {
       // 광고 차단기 등으로 실패해도 화면은 그대로 둔다
     }
-  }, []);
+  }, [hidden]);
 
+  if (hidden) return null;
   if (!ADSENSE_CLIENT || !ADSENSE_SLOT) return <Placeholder />;
 
   return (
@@ -95,7 +100,7 @@ export const adFitPopupEnabled = Boolean(ADFIT_POPUP_UNIT) || import.meta.env.DE
 const POPUP_WAIT_SEC = 3;
 
 /** 내 사주에 들어가기 전에 띄우는 애드핏 광고 팝업. 몇 초 뒤 닫기 버튼이 켜진다 */
-export function AdFitPopup({ onClose }: { onClose: () => void }) {
+export function AdFitPopup({ onClose, onUpgrade }: { onClose: () => void; onUpgrade?: () => void }) {
   const [left, setLeft] = useState(POPUP_WAIT_SEC);
 
   useEffect(() => {
@@ -118,6 +123,11 @@ export function AdFitPopup({ onClose }: { onClose: () => void }) {
         <button type="button" className="btn primary" onClick={onClose} disabled={left > 0}>
           {left > 0 ? `${left}초 후 닫을 수 있어요` : '닫고 내 사주 보기'}
         </button>
+        {onUpgrade ? (
+          <button type="button" className="link" style={{ margin: 0 }} onClick={onUpgrade}>
+            광고 없이 보려면 하루 한수 플러스
+          </button>
+        ) : null}
       </div>
     </div>
   );
