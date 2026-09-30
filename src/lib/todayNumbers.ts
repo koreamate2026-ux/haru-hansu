@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useApp } from '../state/AppState';
-import { familyCompat, luckyCategories, type LuckyCategory } from './luckyNumbers';
+import { useBilling } from '../state/BillingState';
+import { favoriteAsProfile, useFavorites } from '../state/FavoritesState';
+import { familyCompat, favoriteCompat, luckyCategories, type LuckyCategory } from './luckyNumbers';
 import { KEYS, load, save } from './storage';
 
 export const MAX_DAILY_PICKS = 6;
@@ -12,6 +14,8 @@ export const todayKeyOf = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}-$
 /** 홈과 숫자 추가 화면이 같은 번호를 보도록, 오늘의 카테고리 숫자를 한곳에서 계산한다 */
 export function useTodayCategories() {
   const { profiles, activeProfile, activeChart, todayDream } = useApp();
+  const { premium } = useBilling();
+  const { active: favorite } = useFavorites();
   const now = useMemo(() => new Date(), []);
   const todayKey = todayKeyOf(now);
 
@@ -20,8 +24,11 @@ export function useTodayCategories() {
     const cats = luckyCategories(activeProfile, activeChart, { dream: todayDream, todayKey, now, rolls: NO_ROLLS, globalRoll: 0 });
     const family = familyCompat(profiles, { todayKey, rolls: NO_ROLLS, globalRoll: 0 });
     // 오행 숫자 바로 다음에 가족 궁합 숫자를 끼워 넣는다
-    return [...cats.slice(0, 2), family, ...cats.slice(2)];
-  }, [profiles, activeProfile, activeChart, todayDream, todayKey, now]);
+    const all = [...cats.slice(0, 2), family, ...cats.slice(2)];
+    // 좋아하는 사람 궁합 숫자는 플러스 회원만
+    if (premium && favorite) all.push(favoriteCompat(activeProfile, favoriteAsProfile(favorite), { todayKey }));
+    return all;
+  }, [profiles, activeProfile, activeChart, todayDream, todayKey, now, premium, favorite]);
 
   return { now, categories };
 }

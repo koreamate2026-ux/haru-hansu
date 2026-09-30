@@ -4,6 +4,7 @@ import { TabBar } from './components/ui';
 import About from './pages/About';
 import AddNumber from './pages/AddNumber';
 import DrawEntry from './pages/DrawEntry';
+import Favorites from './pages/Favorites';
 import Legal from './pages/Legal';
 import Login from './pages/Login';
 import Premium from './pages/Premium';
@@ -18,6 +19,7 @@ import Tickets from './pages/Tickets';
 import { AppStateProvider } from './state/AppState';
 import { AuthStateProvider, useAuth } from './state/AuthState';
 import { BillingStateProvider } from './state/BillingState';
+import { FavoritesStateProvider } from './state/FavoritesState';
 
 /** 로그인한 계정이 없으면 로컬에 저장된 사람이 있어도 예외 없이 로그인 화면으로 보낸다 */
 function TabsLayout() {
@@ -53,6 +55,7 @@ export default function App() {
   return (
     <AuthStateProvider>
       <BillingStateProvider>
+      <FavoritesStateProvider>
       <AppStateProvider>
         <HashRouter>
           <ScrollToTop />
@@ -72,6 +75,7 @@ export default function App() {
               <Route path="add-number" element={<AddNumber />} />
               <Route path="premium" element={<Premium />} />
               <Route path="stats" element={<Stats />} />
+              <Route path="favorites" element={<Favorites />} />
               <Route path="legal/:doc" element={<Legal />} />
               <Route path="ticket-new" element={<TicketNew />} />
               <Route path="draw-entry/:round" element={<DrawEntry />} />
@@ -81,6 +85,7 @@ export default function App() {
           </div>
         </HashRouter>
       </AppStateProvider>
+      </FavoritesStateProvider>
       </BillingStateProvider>
     </AuthStateProvider>
   );

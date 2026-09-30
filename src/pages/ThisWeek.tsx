@@ -9,6 +9,10 @@ import { newId } from '../lib/random';
 import { upcomingRound } from '../lib/rounds';
 import { MAX_DAILY_PICKS, useDailyPicks, useTodayCategories } from '../lib/todayNumbers';
 import { useApp } from '../state/AppState';
+import { useBilling } from '../state/BillingState';
+
+const PERSONAL_KEYS = new Set(['zodiac', 'ohaeng', 'star', 'blood', 'stone', 'name', 'dream', 'today', 'lucky']);
+const FAMILY_KEYS = new Set(['compat', 'family']);
 
 export default function ThisWeek() {
   const navigate = useNavigate();
@@ -18,6 +22,7 @@ export default function ThisWeek() {
   const { now, categories: allCategories } = useTodayCategories();
   const { picks: pickedNums, toggle: togglePicked, clear: clearPicked } = useDailyPicks();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const { premium } = useBilling();
 
   useEffect(() => {
     if (!openKey) return;
@@ -36,6 +41,17 @@ export default function ThisWeek() {
 
   const round = upcomingRound();
   const open = allCategories.find((c) => c.key === openKey) ?? null;
+  const favoriteCat = allCategories.find((c) => c.key === 'favorite') ?? null;
+
+  const tile = (c: (typeof allCategories)[number]) => (
+    <button key={c.key} type="button" className={c.empty ? 'tile dim' : 'tile'} onClick={() => setOpenKey(c.key)}>
+      <span className="tile-icon" aria-hidden>
+        {c.emoji}
+      </span>
+      <span className="tile-label">{c.title}</span>
+      {c.empty ? <span className="tile-hint">정보 필요</span> : null}
+    </button>
+  );
 
   const onSaveDailyPick = () => {
     if (pickedNums.length !== MAX_DAILY_PICKS) return;
@@ -122,16 +138,35 @@ export default function ThisWeek() {
 
       <p className="dim small" style={{ margin: '16px 0' }}>그림을 눌러 숫자를 확인해요</p>
 
+      <h2 className="grid-head">나의 숫자</h2>
+      <div className="cat-grid">{allCategories.filter((c) => PERSONAL_KEYS.has(c.key)).map(tile)}</div>
+
+      <h2 className="grid-head">가족 숫자</h2>
+      <div className="cat-grid">{allCategories.filter((c) => FAMILY_KEYS.has(c.key)).map(tile)}</div>
+
+      <h2 className="grid-head">
+        좋아하는 사람 숫자 <span className="plus-badge">플러스</span>
+      </h2>
       <div className="cat-grid">
-        {allCategories.map((c) => (
-          <button key={c.key} type="button" className={c.empty ? 'tile dim' : 'tile'} onClick={() => setOpenKey(c.key)}>
+        {favoriteCat ? (
+          <>
+            {tile(favoriteCat)}
+            <button type="button" className="tile dim" onClick={() => navigate('/favorites')}>
+              <span className="tile-icon" aria-hidden>
+                ＋
+              </span>
+              <span className="tile-label">사람 바꾸기</span>
+            </button>
+          </>
+        ) : (
+          <button type="button" className="tile dim" onClick={() => navigate(premium ? '/favorites' : '/premium')}>
             <span className="tile-icon" aria-hidden>
-              {c.emoji}
+              💖
             </span>
-            <span className="tile-label">{c.title}</span>
-            {c.empty ? <span className="tile-hint">정보 필요</span> : null}
+            <span className="tile-label">연예인·위인과 궁합</span>
+            <span className="tile-hint">{premium ? '추가하기' : '플러스 전용'}</span>
           </button>
-        ))}
+        )}
       </div>
 
       <p className="notice" style={{ marginTop: 24 }}>숫자는 무작위로 정해지고 어떤 숫자든 확률은 같아요. 재미로 봐주세요.</p>
@@ -199,6 +234,9 @@ export default function ThisWeek() {
                     disabled={pickedNums.includes(open.nums[0]) || pickedNums.length >= MAX_DAILY_PICKS}
                   />
                   <Button label="번호 복사" kind="secondary" onPress={() => onCopy(open.title, open.nums)} />
+                  {open.key === 'favorite' ? (
+                    <Button label="좋아하는 사람 바꾸기·추가" kind="secondary" onPress={() => navigate('/favorites')} />
+                  ) : null}
                 </>
               )}
             </div>

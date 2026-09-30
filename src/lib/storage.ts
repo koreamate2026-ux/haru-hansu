@@ -10,6 +10,7 @@ export const KEYS = {
   auth: 'auth',
   currentHouseholdId: 'currentHouseholdId',
   dailyPicks: 'dailyPicks',
+  favoriteActive: 'favoriteActive',
 } as const;
 
 /** 브라우저 저장소(localStorage). 개인 정보 보호 모드 등에서 막히면 기본값으로 동작 */

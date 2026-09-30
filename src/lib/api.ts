@@ -145,6 +145,13 @@ export const api = {
   deleteAccount: (password: string, token: string) =>
     request<void>('/auth/me', { method: 'DELETE', body: JSON.stringify({ password }) }, token),
 
+  listFavorites: (token: string) => request<ApiFavorite[]>('/favorites', {}, token),
+
+  createFavorite: (data: ApiFavoriteInput, token: string) =>
+    request<ApiFavorite>('/favorites', { method: 'POST', body: JSON.stringify(data) }, token),
+
+  deleteFavorite: (id: string, token: string) => request<void>(`/favorites/${id}`, { method: 'DELETE' }, token),
+
   billingStatus: (token: string) => request<BillingStatus>('/billing/me', {}, token),
 
   billingCheckout: (plan: PlanId, token: string) =>
@@ -164,6 +171,23 @@ export const api = {
 };
 
 export type PlanId = 'monthly' | 'yearly';
+
+export interface ApiFavorite {
+  id: string;
+  name: string;
+  kind: 'historical' | 'custom';
+  historicalKey: string | null;
+  calendar: 'solar' | 'lunar';
+  leapMonth: boolean;
+  birthYear: number;
+  birthMonth: number;
+  birthDay: number;
+  birthHour: number | null;
+  birthMinute: number;
+  createdAt: string;
+}
+
+export type ApiFavoriteInput = Omit<ApiFavorite, 'id' | 'createdAt'>;
 
 export interface ApiMember {
   accountId: string;

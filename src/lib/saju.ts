@@ -48,10 +48,16 @@ function toPillar(label: Pillar['label'], ganzhi: string): Pillar {
 }
 
 /** 입력(양력/음력)을 양력 시각으로 변환. 존재하지 않는 날짜면 BirthDateError */
-export function toSolar(p: Pick<Profile, 'calendar' | 'leapMonth' | 'year' | 'month' | 'day' | 'hour' | 'minute'>): SolarDate {
+/** 좋아하는 사람(위인)은 옛날 사람이라 이 해부터 받는다. 일반 사람 입력은 1900년부터 */
+export const HISTORIC_MIN_YEAR = 1300;
+
+export function toSolar(
+  p: Pick<Profile, 'calendar' | 'leapMonth' | 'year' | 'month' | 'day' | 'hour' | 'minute'>,
+  minYear = 1900,
+): SolarDate {
   const hour = p.hour ?? 12;
   const minute = p.hour === null ? 0 : p.minute;
-  if (p.year < 1900 || p.year > 2100) throw new BirthDateError('1900년부터 2100년 사이의 날짜만 계산할 수 있어요.');
+  if (p.year < minYear || p.year > 2100) throw new BirthDateError(`${minYear}년부터 2100년 사이의 날짜만 계산할 수 있어요.`);
   if (p.month < 1 || p.month > 12) throw new BirthDateError('월은 1부터 12 사이로 입력해 주세요.');
   if (p.day < 1 || p.day > 31) throw new BirthDateError('일은 1부터 31 사이로 입력해 주세요.');
   if (hour < 0 || hour > 23 || minute < 0 || minute > 59) throw new BirthDateError('시간은 0시~23시, 분은 0~59로 입력해 주세요.');
@@ -71,8 +77,8 @@ export function toSolar(p: Pick<Profile, 'calendar' | 'leapMonth' | 'year' | 'mo
   }
 }
 
-function birthMoments(p: Profile) {
-  const solar = toSolar(p);
+function birthMoments(p: Profile, minYear?: number) {
+  const solar = toSolar(p, minYear);
   const hour = p.hour ?? 12;
   const minute = p.hour === null ? 0 : p.minute;
   const conv = convertKoreanClock({ y: solar.getYear(), m: solar.getMonth(), d: solar.getDay(), h: hour, mi: minute });
@@ -85,8 +91,8 @@ function birthMoments(p: Profile) {
 /** 대운 계산용: 연주·월주를 세운 것과 같은 기준(절기)의 팔자 */
 export const termEightChar = (p: Profile): EightChar => birthMoments(p).ecTerm;
 
-export function computeChart(p: Profile): SajuChart {
-  const { solar, conv, ecTerm } = birthMoments(p);
+export function computeChart(p: Profile, minYear?: number): SajuChart {
+  const { solar, conv, ecTerm } = birthMoments(p, minYear);
   // 일주·시주: 서머타임을 뺀 한국 표준시각으로. sect 2 = 야자시(23시대)는 다음 날로 넘기지 않음
   const st = conv.standardLocal;
   const ec = Solar.fromYmdHms(st.y, st.m, st.d, st.h, st.mi, 0).getLunar().getEightChar();

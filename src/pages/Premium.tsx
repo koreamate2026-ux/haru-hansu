@@ -49,6 +49,7 @@ const BENEFITS = [
   `내가 만든 가족 그룹에 인원 제한 없이 등록 (무료는 ${FREE_PERSON_LIMIT}명까지)`,
   '자세한 사주 풀이 (10년 운의 흐름·올해·이번 달·타고난 성향)',
   '지난 회차 번호 기록 분석',
+  '좋아하는 연예인·위인과 궁합 숫자',
 ];
 const PLAN_LABEL: Record<PlanId, string> = { monthly: '월간', yearly: '연간' };
 

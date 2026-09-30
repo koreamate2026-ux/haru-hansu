@@ -25,8 +25,31 @@ model Account {
   ownedHouseholds  Household[]        @relation("HouseholdOwner")
   createdTickets   SavedTicket[]
   subscription     Subscription?
+  favorites        FavoritePerson[]
 
   @@map("accounts")
+}
+
+/// 좋아하는 연예인·위인(플러스 전용, 계정마다). 나와의 궁합 숫자를 보는 데 쓴다
+model FavoritePerson {
+  id            String   @id @default(uuid())
+  accountId     String
+  name          String
+  /// historical(앱이 준 위인 목록) | custom(사용자가 직접 입력)
+  kind          String   @default("custom")
+  historicalKey String?
+  calendar      Calendar @default(solar)
+  leapMonth     Boolean  @default(false)
+  birthYear     Int
+  birthMonth    Int
+  birthDay      Int
+  birthHour     Int?
+  birthMinute   Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("favorite_people")
 }
 
 /// 하루 한수 플러스 구독. 계정(개인) 단위로 하나. 결제 전에도 customerKey를 담아 두려고 pending 상태로 먼저 만든다

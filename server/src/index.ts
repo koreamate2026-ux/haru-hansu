@@ -3,6 +3,7 @@ import express from 'express';
 import { startRenewalScheduler } from './lib/billing.js';
 import { authRouter } from './routes/auth.js';
 import { billingRouter } from './routes/billing.js';
+import { favoritesRouter } from './routes/favorites.js';
 import { householdsRouter } from './routes/households.js';
 import { personsRouter } from './routes/persons.js';
 import { ticketsRouter } from './routes/tickets.js';
@@ -32,6 +33,7 @@ app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'haru-hansu-
 
 app.use('/api/auth', authRouter);
 app.use('/api/billing', billingRouter);
+app.use('/api/favorites', favoritesRouter);
 app.use('/api/households', householdsRouter);
 app.use('/api/households/:householdId/persons', personsRouter);
 app.use('/api/households/:householdId/tickets', ticketsRouter);

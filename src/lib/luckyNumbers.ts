@@ -1,6 +1,6 @@
-import { ELEMENT_INFO, ELEMENTS, numbersOf } from './elements';
+import { CONTROLS, ELEMENT_INFO, ELEMENTS, GENERATES, controllerOf, numbersOf, withJosa } from './elements';
 import { hashString, seededRandom } from './random';
-import { computeChart, type SajuChart } from './saju';
+import { HISTORIC_MIN_YEAR, computeChart, type SajuChart } from './saju';
 import type { Element, FamilyEvent, Profile } from './types';
 
 /** 12지지 순서 (子=0 쥐 ... 亥=11 돼지). 사주의 연지 글자를 이 순서로 찾아 띠 계산에 써요 */
@@ -343,4 +343,47 @@ export function familyCompat(profiles: Profile[], opts: { todayKey: string; roll
   const story = `${names} 님을 함께 보면 ${w.name}(${w.hanja}) 기운이 가장 부족해요. 그래서 오늘의 궁합 숫자로 ${w.name} 기운의 번호를 하나 골랐어요.`;
 
   return { key, emoji, title, tag: names, nums, story, personIds: members.map((m) => m.p.id) };
+}
+
+const FAVORITE_RELATION_TEXT = {
+  same: '나와 같은 기운이라 닮은 점이 많은 사이예요.',
+  output: '내가 힘을 보태 주는 사이예요. 응원할수록 나도 신이 나요.',
+  wealth: '내가 이끌어 가는 사이예요. 보면서 목표가 또렷해져요.',
+  power: '나를 단단하게 다듬어 주는 사이예요. 본받을 점이 많아요.',
+  resource: '나에게 힘을 채워 주는 사이예요. 보면 기운이 나요.',
+} as const;
+
+/**
+ * 좋아하는 사람(연예인·위인)과의 궁합 숫자(플러스). 가족 궁합처럼 두 사람의 기운을 합쳐
+ * 가장 부족한 기운의 번호를 고르고, 그 사람이 나에게 어떤 기운인지 한 줄로 풀어 준다.
+ */
+export function favoriteCompat(me: Profile, fav: Profile, opts: { todayKey: string }): LuckyCategory {
+  const key = 'favorite';
+  const emoji = '💖';
+  const title = `${withJosa(fav.name, '과', '와')} 궁합`;
+  let mine: SajuChart;
+  let theirs: SajuChart;
+  try {
+    mine = computeChart(me);
+    theirs = computeChart(fav, HISTORIC_MIN_YEAR);
+  } catch {
+    return { key, emoji, title, tag: fav.name, empty: true, nums: [], story: '생년월일을 다시 확인해 주세요.' };
+  }
+
+  const combined: Record<Element, number> = { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
+  for (const e of ELEMENTS) combined[e] = mine.counts[e] + theirs.counts[e];
+  const weakest = [...ELEMENTS].sort((a, b) => combined[a] - combined[b]);
+
+  const self = mine.dayMaster.element;
+  const other = theirs.dayMaster.element;
+  const relation =
+    other === self ? 'same' : other === GENERATES[self] ? 'output' : other === CONTROLS[self] ? 'wealth' : other === controllerOf(self) ? 'power' : 'resource';
+
+  const rand = seededRandom(hashString(`${opts.todayKey}|favorite|${JSON.stringify(me)}|${JSON.stringify(fav)}`));
+  const nums = pickNumbers(numbersOf(weakest[0]), numbersOf(weakest[1]), rand);
+
+  const o = ELEMENT_INFO[other];
+  const w = ELEMENT_INFO[weakest[0]];
+  const story = `${fav.name} 님은 ${o.name}(${o.hanja}) 기운을 타고났어요. ${FAVORITE_RELATION_TEXT[relation]} 둘을 함께 보면 ${w.name}(${w.hanja}) 기운이 가장 부족해서, 오늘은 그 기운의 번호를 골랐어요.`;
+  return { key, emoji, title, tag: `${fav.name} · ${o.name} 기운`, nums, story };
 }
