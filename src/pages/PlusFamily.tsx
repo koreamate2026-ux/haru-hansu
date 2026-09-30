@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnniversaryWizard } from '../components/AnniversaryWizard';
 import { BallRow } from '../components/LottoBall';
 import { PlusOnly, TodayNumberCard } from '../components/PlusDetail';
 import { Body, Button, Header, Screen, Section } from '../components/ui';
@@ -17,11 +18,19 @@ export default function PlusFamily() {
 
 function FamilyBody() {
   const navigate = useNavigate();
-  const { profiles, activeProfile } = useApp();
+  const { profiles, upsertProfile } = useApp();
   const { categories } = useTodayCategories();
   const cat = categories?.find((c) => c.key === 'family') ?? null;
   const events = useMemo(() => upcomingEvents(profiles), [profiles]);
   const next = events[0];
+  // 기념일이 하나도 없으면 들어오자마자 추가 팝업을 띄운다
+  const [wizard, setWizard] = useState(() => events.length === 0 && profiles.length > 0);
+
+  const removeEvent = (personId: string, index: number, label: string) => {
+    const p = profiles.find((x) => x.id === personId);
+    if (!p || !window.confirm(`${p.name} 님의 ${label}을(를) 지울까요?`)) return;
+    upsertProfile({ ...p, familyEvents: p.familyEvents.filter((_, i) => i !== index) });
+  };
 
   return (
     <>
@@ -34,7 +43,11 @@ function FamilyBody() {
             <Body dim style={{ marginBottom: 20 }}>
               아직 등록한 가족 기념일이 없어요. 생일·결혼기념일처럼 소중한 날을 넣으면 그 날짜로 번호를 만들어 드려요.
             </Body>
-            <Button label="기념일 넣으러 가기" onPress={() => navigate(activeProfile ? `/profile?id=${encodeURIComponent(activeProfile.id)}` : '/profile')} />
+            {profiles.length ? (
+              <Button label="기념일 추가하기" onPress={() => setWizard(true)} />
+            ) : (
+              <Button label="사람 먼저 추가하기" onPress={() => navigate('/profile')} />
+            )}
           </>
         ) : (
           <>
@@ -52,8 +65,8 @@ function FamilyBody() {
 
             <Section title="다가오는 기념일">
               <div className="stack" style={{ gap: 0 }}>
-                {events.map((e, i) => (
-                  <div key={`${e.personName}-${e.label}-${i}`} className="luck">
+                {events.map((e) => (
+                  <div key={`${e.personId}-${e.index}`} className="luck">
                     <div className="luck-top">
                       <strong>{e.label}</strong>
                       <span className="dim small">
@@ -64,15 +77,24 @@ function FamilyBody() {
                     <div style={{ marginTop: 6 }}>
                       <BallRow numbers={e.numbers} size={30} />
                     </div>
-                    <span className="faint small">월·일·두 수를 더한 값에서 나온 번호예요</span>
+                    <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className="faint small">월·일·두 수를 더한 값에서 나온 번호예요</span>
+                      <button type="button" className="text-btn" onClick={() => removeEvent(e.personId, e.index, e.label)}>
+                        지우기
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             </Section>
-            <p className="notice">기념일은 사람마다 두 개까지, 설정 &gt; 사람 &gt; 수정에서 넣을 수 있어요.</p>
+            <Button label="기념일 추가하기" kind="secondary" onPress={() => setWizard(true)} />
+            <p className="notice" style={{ marginTop: 12 }}>
+              기념일은 사람마다 두 개까지 넣을 수 있어요.
+            </p>
           </>
         )}
       </Screen>
+      {wizard ? <AnniversaryWizard onClose={() => setWizard(false)} /> : null}
     </>
   );
 }

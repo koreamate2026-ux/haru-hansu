@@ -599,3 +599,8 @@ input { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* 단계형 팝업 진행 표시 */
+.wizard-steps { display: flex; gap: 4px; margin-bottom: 6px; }
+.wizard-steps span { width: 18px; height: 4px; border-radius: 2px; background: var(--line); }
+.wizard-steps span.on { background: var(--gold); }

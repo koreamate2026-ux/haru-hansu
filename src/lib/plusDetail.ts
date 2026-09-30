@@ -56,6 +56,9 @@ export function zodiacMatch(a: SajuChart, b: SajuChart): ZodiacMatch {
 // ─── 가족 기념일 ─────────────────────────────────────
 
 export interface UpcomingEvent {
+  personId: string;
+  /** 그 사람의 familyEvents 안에서 몇 번째인지 */
+  index: number;
   personName: string;
   label: string;
   month: number;
@@ -66,17 +69,19 @@ export interface UpcomingEvent {
   numbers: number[];
 }
 
+/** 기념일 날짜에서 나온 번호 후보: 월, 일, 월+일 */
+export const eventNumbers = (month: number, day: number) => [...new Set([month, day, month + day])].filter((n) => n >= 1 && n <= 45);
+
 export function upcomingEvents(profiles: Profile[], today = new Date()): UpcomingEvent[] {
   const base = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   const list: UpcomingEvent[] = [];
   for (const p of profiles) {
-    for (const e of p.familyEvents ?? []) {
-      if (!e.month || !e.day) continue;
+    (p.familyEvents ?? []).forEach((e, index) => {
+      if (!e.month || !e.day) return;
       let next = new Date(today.getFullYear(), e.month - 1, e.day).getTime();
       if (next < base) next = new Date(today.getFullYear() + 1, e.month - 1, e.day).getTime();
-      const numbers = [...new Set([e.month, e.day, e.month + e.day])].filter((n) => n >= 1 && n <= 45);
-      list.push({ personName: p.name, label: e.label || '기념일', month: e.month, day: e.day, daysLeft: Math.round((next - base) / 86400000), numbers });
-    }
+      list.push({ personId: p.id, index, personName: p.name, label: e.label || '기념일', month: e.month, day: e.day, daysLeft: Math.round((next - base) / 86400000), numbers: eventNumbers(e.month, e.day) });
+    });
   }
   return list.sort((a, b) => a.daysLeft - b.daysLeft);
 }
