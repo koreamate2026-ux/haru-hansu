@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Body, Button, Screen, Section, Title } from '../components/ui';
+import { ApiError, api, type ApiMember } from '../lib/api';
 import { DEFAULT_DRAW_API } from '../lib/draws';
 import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
@@ -77,6 +78,206 @@ function FamilySync() {
           ? '지금 고른 가족 그룹과 사람·번호함이 서로 맞춰지고 있어요. 이 기기에서 추가·수정·삭제하면 서버에도 그대로 반영돼요.'
           : '가족 그룹을 고르면 그때부터 사람·번호함이 서버와 맞춰져요.'}
       </Body>
+    </Section>
+  );
+}
+
+function FamilyMembers() {
+  const { token, households, currentHouseholdId, setCurrentHousehold, reloadHouseholds } = useAuth();
+  const group = households.find((h) => h.id === currentHouseholdId);
+  const isOwner = group?.role === 'owner';
+  const [members, setMembers] = useState<ApiMember[] | null>(null);
+  const [invite, setInvite] = useState<{ code: string; expiresAt: string } | null>(null);
+  const [joinCode, setJoinCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const loadMembers = useCallback(async () => {
+    if (!token || !currentHouseholdId) return setMembers(null);
+    try {
+      setMembers(await api.householdMembers(currentHouseholdId, token));
+    } catch {
+      setMembers(null);
+    }
+  }, [token, currentHouseholdId]);
+
+  useEffect(() => {
+    setInvite(null);
+    void loadMembers();
+  }, [loadMembers]);
+
+  if (!token) return null;
+
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await fn();
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof ApiError ? e.message : '처리하지 못했어요.' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const makeInvite = () =>
+    run(async () => {
+      if (!currentHouseholdId) return;
+      setInvite(await api.createInvite(currentHouseholdId, token));
+    });
+
+  const shareInvite = async () => {
+    if (!invite || !group) return;
+    const text = `[하루 한수] "${group.name}" 가족 그룹 초대 코드: ${invite.code}\n하루 한수에 로그인한 뒤 설정 > 초대 코드로 참여하기에 입력해 주세요. (7일 안에 한 번만 쓸 수 있어요)`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setMsg({ ok: true, text: '초대 문구를 복사했어요. 가족에게 보내 주세요.' });
+    } catch {
+      setMsg({ ok: true, text });
+    }
+  };
+
+  const join = () =>
+    run(async () => {
+      const joined = await api.joinHousehold(joinCode, token);
+      await reloadHouseholds();
+      setCurrentHousehold(joined.id);
+      setJoinCode('');
+      setMsg({ ok: true, text: `"${joined.name}" 가족 그룹에 들어왔어요.` });
+    });
+
+  const remove = (m: ApiMember) => {
+    const leaving = m.isMe;
+    const question = leaving ? '이 가족 그룹에서 나갈까요?\n다시 들어오려면 새 초대 코드가 필요해요.' : `${m.displayName}님을 이 가족 그룹에서 내보낼까요?`;
+    if (!currentHouseholdId || !window.confirm(question)) return;
+    void run(async () => {
+      await api.removeMember(currentHouseholdId, m.accountId, token);
+      if (leaving) {
+        await reloadHouseholds();
+        setMsg({ ok: true, text: '가족 그룹에서 나왔어요.' });
+      } else {
+        await loadMembers();
+      }
+    });
+  };
+
+  return (
+    <Section title="가족 구성원">
+      {members ? (
+        <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
+          {members.map((m) => (
+            <div key={m.accountId} className="person">
+              <div className="person-main">
+                <div className="person-name">
+                  {m.displayName}
+                  {m.isMe ? <span className="dim"> · 나</span> : null}
+                </div>
+                <div className="person-detail">{m.role === 'owner' ? '그룹을 만든 분' : '구성원'}</div>
+              </div>
+              {m.role === 'member' && (isOwner || m.isMe) ? (
+                <button type="button" className="text-btn" onClick={() => remove(m)} disabled={busy}>
+                  {m.isMe ? '나가기' : '내보내기'}
+                </button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {isOwner ? (
+        invite ? (
+          <div className="invite-box">
+            <span className="dim small">초대 코드 · 7일 안에 한 번만 쓸 수 있어요</span>
+            <span className="invite-code">{invite.code}</span>
+            <Button label="초대 문구 복사하기" onPress={shareInvite} />
+          </div>
+        ) : (
+          <Button label="가족 초대 코드 만들기" kind="secondary" onPress={makeInvite} disabled={busy} />
+        )
+      ) : null}
+
+      <div className="row" style={{ marginTop: 16 }}>
+        <input
+          className="input small-text"
+          style={{ flex: 1, textTransform: 'uppercase' }}
+          value={joinCode}
+          onChange={(e) => setJoinCode(e.target.value)}
+          placeholder="받은 초대 코드 6자리"
+          maxLength={10}
+          aria-label="초대 코드"
+          autoCapitalize="characters"
+          autoCorrect="off"
+        />
+        <Button label="참여하기" kind="secondary" onPress={join} disabled={busy || joinCode.trim().length < 6} />
+      </div>
+
+      {msg ? (
+        <Body small style={{ marginTop: 10, color: msg.ok ? 'var(--gold)' : 'var(--danger)', whiteSpace: 'pre-line' }}>
+          {msg.text}
+        </Body>
+      ) : null}
+    </Section>
+  );
+}
+
+function DeleteAccount() {
+  const navigate = useNavigate();
+  const { token, logout } = useAuth();
+  const { resetAll } = useApp();
+  const { premium } = useBilling();
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!token) return null;
+  if (!open) {
+    return (
+      <button type="button" className="text-btn" style={{ display: 'block', margin: '20px auto 0', color: 'var(--text-faint)' }} onClick={() => setOpen(true)}>
+        회원 탈퇴
+      </button>
+    );
+  }
+
+  const submit = async () => {
+    if (!window.confirm('정말 탈퇴할까요? 되돌릴 수 없어요.')) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.deleteAccount(password, token);
+      resetAll();
+      logout();
+      navigate('/login', { replace: true });
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : '탈퇴하지 못했어요.');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section title="회원 탈퇴" style={{ marginTop: 28 }}>
+      <Body dim small style={{ marginBottom: 12 }}>
+        탈퇴하면 계정이 지워지고 되돌릴 수 없어요. 내가 만든 가족 그룹은 다른 구성원이 있으면 가장 먼저 들어온 분에게 넘어가고, 없으면 등록한 사람과 번호함까지 모두 지워져요.
+        {premium ? ' 이용 중인 플러스 구독은 탈퇴와 함께 끝나고 남은 기간은 환불되지 않아요. 환불이 필요하면 먼저 구독 관리에서 환불을 요청해 주세요.' : ''}
+      </Body>
+      <input
+        className="input small-text"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="비밀번호 확인"
+        aria-label="비밀번호 확인"
+        style={{ marginBottom: 12 }}
+      />
+      {error ? (
+        <Body small style={{ color: 'var(--danger)', marginBottom: 12 }}>
+          {error}
+        </Body>
+      ) : null}
+      <div className="stack">
+        <Button label={busy ? '처리 중…' : '탈퇴하기'} kind="danger" onPress={submit} disabled={busy || !password} />
+        <Button label="취소" kind="secondary" onPress={() => setOpen(false)} disabled={busy} />
+      </div>
     </Section>
   );
 }
@@ -166,6 +367,8 @@ export default function Settings() {
 
       <FamilySync />
 
+      <FamilyMembers />
+
       <Section title="정보">
         <button type="button" className="list-row" onClick={() => navigate('/about')}>
           번호를 고르는 방법
@@ -185,6 +388,7 @@ export default function Settings() {
       </Section>
 
       <Button label="모든 정보 지우기" kind="danger" onPress={onReset} />
+      <DeleteAccount />
       <BusinessInfo />
     </Screen>
   );

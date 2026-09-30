@@ -6,6 +6,7 @@ import { issueOtp, verifyOtp } from '../lib/otpStore.js';
 import { checkPhoneRateLimit, resetPhoneRateLimit } from '../lib/phoneRateLimit.js';
 import { prisma } from '../lib/prisma.js';
 import { sendOtpSms } from '../lib/sms.js';
+import { requireAuth } from '../middleware/auth.js';
 
 function formatWait(ms: number): string {
   const minutes = Math.ceil(ms / 60000);
@@ -105,4 +106,38 @@ authRouter.post('/login', async (req, res) => {
   }
   const token = signToken({ accountId: account.id });
   res.json({ token, account: { id: account.id, email: account.email, displayName: account.displayName } });
+});
+
+/**
+ * 회원 탈퇴. 비밀번호를 한 번 더 확인한다.
+ * 내가 만든 가족 그룹은 다른 구성원이 있으면 가장 먼저 들어온 사람에게 넘기고, 없으면 사람·번호함째 지운다.
+ * 구독은 함께 지워져 더 결제되지 않고, 결제 기록은 법에 따라 남긴다(스키마에서 SetNull).
+ */
+authRouter.delete('/me', requireAuth, async (req, res) => {
+  const parsed = z.object({ password: z.string().min(1) }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: '비밀번호를 입력해 주세요.' });
+  const id = req.accountId!;
+  const account = await prisma.account.findUnique({ where: { id } });
+  if (!account) return res.status(404).json({ error: '계정을 찾을 수 없어요.' });
+  if (!(await bcrypt.compare(parsed.data.password, account.passwordHash))) {
+    return res.status(401).json({ error: '비밀번호가 맞지 않아요.' });
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const owned = await tx.household.findMany({
+      where: { ownerId: id },
+      include: { members: { orderBy: { joinedAt: 'asc' } } },
+    });
+    for (const h of owned) {
+      const next = h.members.find((m) => m.accountId !== id);
+      if (next) {
+        await tx.household.update({ where: { id: h.id }, data: { ownerId: next.accountId } });
+        await tx.householdMember.update({ where: { id: next.id }, data: { role: 'owner' } });
+      } else {
+        await tx.household.delete({ where: { id: h.id } });
+      }
+    }
+    await tx.account.delete({ where: { id } });
+  });
+  res.status(204).end();
 });

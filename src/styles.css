@@ -279,6 +279,10 @@ input { font: inherit; }
 .choice-hint { color: var(--text-faint); font-size: 12px; flex: none; }
 .choice-arrow { color: var(--gold); font-size: 24px; line-height: 1; flex: none; }
 
+/* 가족 초대 */
+.invite-box { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px; border: 1px dashed var(--gold); border-radius: 14px; }
+.invite-code { font-family: var(--font-display); font-weight: 700; font-size: 32px; letter-spacing: 6px; color: var(--gold); }
+
 /* 하루 한수 플러스 */
 .detail-head { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
 .luck { padding: 12px 0; border-bottom: 1px solid var(--line); }

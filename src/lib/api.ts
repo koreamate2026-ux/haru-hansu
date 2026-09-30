@@ -131,6 +131,20 @@ export const api = {
   deleteTicket: (householdId: string, ticketId: string, token: string) =>
     request<void>(`/households/${householdId}/tickets/${ticketId}`, { method: 'DELETE' }, token),
 
+  createInvite: (householdId: string, token: string) =>
+    request<{ code: string; expiresAt: string }>(`/households/${householdId}/invites`, { method: 'POST' }, token),
+
+  joinHousehold: (code: string, token: string) =>
+    request<{ id: string; name: string }>('/households/join', { method: 'POST', body: JSON.stringify({ code }) }, token),
+
+  householdMembers: (householdId: string, token: string) => request<ApiMember[]>(`/households/${householdId}/members`, {}, token),
+
+  removeMember: (householdId: string, accountId: string, token: string) =>
+    request<void>(`/households/${householdId}/members/${accountId}`, { method: 'DELETE' }, token),
+
+  deleteAccount: (password: string, token: string) =>
+    request<void>('/auth/me', { method: 'DELETE', body: JSON.stringify({ password }) }, token),
+
   billingStatus: (token: string) => request<BillingStatus>('/billing/me', {}, token),
 
   billingCheckout: (plan: PlanId, token: string) =>
@@ -150,6 +164,14 @@ export const api = {
 };
 
 export type PlanId = 'monthly' | 'yearly';
+
+export interface ApiMember {
+  accountId: string;
+  displayName: string;
+  role: 'owner' | 'member';
+  joinedAt: string;
+  isMe: boolean;
+}
 
 export interface BillingStatus {
   enabled: boolean;

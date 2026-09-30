@@ -24,6 +24,8 @@ interface AuthStateValue {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   createHousehold: (name: string) => Promise<boolean>;
+  /** 가족 그룹 목록을 서버에서 다시 받아온다(참여·나가기 뒤) */
+  reloadHouseholds: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -127,6 +129,10 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
     [refreshHouseholds, setCurrentHousehold],
   );
 
+  const reloadHouseholds = useCallback(async () => {
+    if (storedRef.current) await refreshHouseholds(storedRef.current.token);
+  }, [refreshHouseholds]);
+
   const value: AuthStateValue = {
     account: stored?.account ?? null,
     token: stored?.token ?? null,
@@ -139,6 +145,7 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     createHousehold,
+    reloadHouseholds,
     clearError: () => setError(null),
   };
 
