@@ -51,7 +51,7 @@ export default function Profile() {
   const [year, setYear] = useState(existing ? String(existing.year) : '');
   const [month, setMonth] = useState(existing ? String(existing.month) : '');
   const [day, setDay] = useState(existing ? String(existing.day) : '');
-  const [knowsTime, setKnowsTime] = useState(existing ? existing.hour !== null : true);
+  const [knowsTime, setKnowsTime] = useState(existing ? existing.hour !== null : false);
   const [hour, setHour] = useState(existing?.hour != null ? String(existing.hour) : '');
   const [minute, setMinute] = useState(existing?.hour != null ? String(existing.minute) : '');
   const [bloodType, setBloodType] = useState<BloodType | null>(existing?.bloodType ?? null);
