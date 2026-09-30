@@ -9,6 +9,9 @@ export const MAX_DAILY_PICKS = 6;
 
 const NO_ROLLS: Record<string, number> = {};
 
+/** 플러스 회원만 볼 수 있는 카테고리 */
+export const PLUS_KEYS = new Set(['compat', 'family', 'favorite']);
+
 export const todayKeyOf = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 
 /** 홈과 숫자 추가 화면이 같은 번호를 보도록, 오늘의 카테고리 숫자를 한곳에서 계산한다 */
@@ -25,8 +28,9 @@ export function useTodayCategories() {
     const family = familyCompat(profiles, { todayKey, rolls: NO_ROLLS, globalRoll: 0 });
     // 오행 숫자 바로 다음에 가족 궁합 숫자를 끼워 넣는다
     const all = [...cats.slice(0, 2), family, ...cats.slice(2)];
-    // 좋아하는 사람 궁합 숫자는 플러스 회원만
-    if (premium && favorite) all.push(favoriteCompat(activeProfile, favoriteAsProfile(favorite), { todayKey }));
+    // 가족 숫자(가족 궁합·가족 기념일)와 좋아하는 사람 궁합 숫자는 플러스 회원만
+    if (!premium) return all.filter((c) => !PLUS_KEYS.has(c.key));
+    if (favorite) all.push(favoriteCompat(activeProfile, favoriteAsProfile(favorite), { todayKey }));
     return all;
   }, [profiles, activeProfile, activeChart, todayDream, todayKey, now, premium, favorite]);
 

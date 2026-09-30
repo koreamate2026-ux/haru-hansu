@@ -13,6 +13,11 @@ import { useBilling } from '../state/BillingState';
 
 const PERSONAL_KEYS = new Set(['zodiac', 'ohaeng', 'star', 'blood', 'stone', 'name', 'dream', 'today', 'lucky']);
 const FAMILY_KEYS = new Set(['compat', 'family']);
+/** 무료 회원에게 보여 줄 잠긴 가족 숫자 칸 */
+const FAMILY_LOCKED = [
+  { key: 'compat', emoji: '🤝', title: '가족 궁합 숫자' },
+  { key: 'family', emoji: '👨‍👩‍👧', title: '가족 기념일 숫자' },
+];
 
 export default function ThisWeek() {
   const navigate = useNavigate();
@@ -141,8 +146,22 @@ export default function ThisWeek() {
       <h2 className="grid-head">나의 숫자</h2>
       <div className="cat-grid">{allCategories.filter((c) => PERSONAL_KEYS.has(c.key)).map(tile)}</div>
 
-      <h2 className="grid-head">가족 숫자</h2>
-      <div className="cat-grid">{allCategories.filter((c) => FAMILY_KEYS.has(c.key)).map(tile)}</div>
+      <h2 className="grid-head">
+        가족 숫자 <span className="plus-badge">플러스</span>
+      </h2>
+      <div className="cat-grid">
+        {premium
+          ? allCategories.filter((c) => FAMILY_KEYS.has(c.key)).map(tile)
+          : FAMILY_LOCKED.map((f) => (
+              <button key={f.key} type="button" className="tile dim" onClick={() => navigate('/premium')}>
+                <span className="tile-icon" aria-hidden>
+                  {f.emoji}
+                </span>
+                <span className="tile-label">{f.title}</span>
+                <span className="tile-hint">플러스 전용</span>
+              </button>
+            ))}
+      </div>
 
       <h2 className="grid-head">
         좋아하는 사람 숫자 <span className="plus-badge">플러스</span>
