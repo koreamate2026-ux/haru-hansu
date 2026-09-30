@@ -20,9 +20,6 @@ export default function Login() {
       <div style={{ margin: '48px 0 40px' }}>
         <img src="/logo-mark-144.png" alt="하루 한수" width={72} height={72} style={{ display: 'block', marginBottom: 12 }} />
         <p className="welcome-mark">하루 한수</p>
-        <Body dim style={{ marginTop: 12 }}>
-          가족 계정으로 로그인하면 여러 기기에서 같은 사람·번호함을 볼 수 있어요.
-        </Body>
       </div>
 
       <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
