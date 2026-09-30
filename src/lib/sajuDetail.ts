@@ -18,7 +18,7 @@ export function relationOf(self: Element, other: Element): Relation {
   return 'resource';
 }
 
-const REL_NAME: Record<Relation, string> = {
+export const REL_NAME: Record<Relation, string> = {
   same: '나와 같은 기운',
   output: '내가 드러내는 기운',
   wealth: '내가 거두는 기운',

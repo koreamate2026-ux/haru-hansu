@@ -7,6 +7,9 @@ import DrawEntry from './pages/DrawEntry';
 import Favorites from './pages/Favorites';
 import Legal from './pages/Legal';
 import Login from './pages/Login';
+import PlusCompat from './pages/PlusCompat';
+import PlusFamily from './pages/PlusFamily';
+import PlusFavorite from './pages/PlusFavorite';
 import Premium from './pages/Premium';
 import Profile from './pages/Profile';
 import Saju from './pages/Saju';
@@ -76,6 +79,9 @@ export default function App() {
               <Route path="premium" element={<Premium />} />
               <Route path="stats" element={<Stats />} />
               <Route path="favorites" element={<Favorites />} />
+              <Route path="plus/compat" element={<PlusCompat />} />
+              <Route path="plus/family" element={<PlusFamily />} />
+              <Route path="plus/favorite" element={<PlusFavorite />} />
               <Route path="legal/:doc" element={<Legal />} />
               <Route path="ticket-new" element={<TicketNew />} />
               <Route path="draw-entry/:round" element={<DrawEntry />} />

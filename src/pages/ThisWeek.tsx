@@ -13,6 +13,8 @@ import { useBilling } from '../state/BillingState';
 
 const PERSONAL_KEYS = new Set(['zodiac', 'ohaeng', 'star', 'blood', 'stone', 'name', 'dream', 'today', 'lucky']);
 const FAMILY_KEYS = new Set(['compat', 'family']);
+/** 플러스 칸은 작은 창 대신 전용 상세 화면으로 연다 */
+const PLUS_PAGES: Record<string, string> = { compat: '/plus/compat', family: '/plus/family', favorite: '/plus/favorite' };
 /** 무료 회원에게 보여 줄 잠긴 가족 숫자 칸 */
 const FAMILY_LOCKED = [
   { key: 'compat', emoji: '🤝', title: '가족 궁합 숫자' },
@@ -49,7 +51,7 @@ export default function ThisWeek() {
   const favoriteCat = allCategories.find((c) => c.key === 'favorite') ?? null;
 
   const tile = (c: (typeof allCategories)[number]) => (
-    <button key={c.key} type="button" className={c.empty ? 'tile dim' : 'tile'} onClick={() => setOpenKey(c.key)}>
+    <button key={c.key} type="button" className={c.empty ? 'tile dim' : 'tile'} onClick={() => (PLUS_PAGES[c.key] ? navigate(PLUS_PAGES[c.key]) : setOpenKey(c.key))}>
       <span className="tile-icon" aria-hidden>
         {c.emoji}
       </span>
@@ -253,9 +255,7 @@ export default function ThisWeek() {
                     disabled={pickedNums.includes(open.nums[0]) || pickedNums.length >= MAX_DAILY_PICKS}
                   />
                   <Button label="번호 복사" kind="secondary" onPress={() => onCopy(open.title, open.nums)} />
-                  {open.key === 'favorite' ? (
-                    <Button label="좋아하는 사람 바꾸기·추가" kind="secondary" onPress={() => navigate('/favorites')} />
-                  ) : null}
+
                 </>
               )}
             </div>
