@@ -604,3 +604,11 @@ input { font: inherit; }
 .wizard-steps { display: flex; gap: 4px; margin-bottom: 6px; }
 .wizard-steps span { width: 18px; height: 4px; border-radius: 2px; background: var(--line); }
 .wizard-steps span.on { background: var(--gold); }
+
+/* 화면 가운데에 뜨는 팝업(온보딩) */
+.sheet-center { align-items: center; padding: 20px; }
+.sheet-center .sheet { border-radius: 24px; max-width: 420px; padding-bottom: 20px; animation: sheet-pop 0.2s ease; }
+@keyframes sheet-pop {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}

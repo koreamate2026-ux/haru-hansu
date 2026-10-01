@@ -74,7 +74,7 @@ export function AnniversaryWizard({ onClose }: { onClose: () => void }) {
   const digits = (v: string) => v.replace(/[^0-9]/g, '');
 
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
+    <div className="sheet-backdrop sheet-center" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="가족 기념일 추가">
         <div className="sheet-head">
           {step > 0 && step < 3 ? (
