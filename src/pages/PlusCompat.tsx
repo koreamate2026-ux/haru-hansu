@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { CompatWizard } from '../components/CompatWizard';
 import { ElementBars } from '../components/ElementBars';
 import { PlusOnly, TodayNumberCard } from '../components/PlusDetail';
 import { Body, Button, Header, Screen, Section } from '../components/ui';
@@ -20,7 +20,6 @@ export default function PlusCompat() {
 }
 
 function CompatBody() {
-  const navigate = useNavigate();
   const { profiles, activeProfile } = useApp();
   const { categories } = useTodayCategories();
   const cat = categories?.find((c) => c.key === 'compat') ?? null;
@@ -48,6 +47,8 @@ function CompatBody() {
   const weakest = [...ELEMENTS].sort((a, b) => combined[a] - combined[b])[0];
   const w = ELEMENT_INFO[weakest];
   const base = members.find((m) => m.p.id === baseId) ?? members[0];
+  // 함께 볼 사람이 모자라면 들어오자마자 시작 팝업을 띄운다
+  const [wizard, setWizard] = useState(() => members.length < 2);
 
   return (
     <>
@@ -58,7 +59,7 @@ function CompatBody() {
             <Body dim style={{ marginBottom: 20 }}>
               가족이나 친구를 한 명 더 등록하면, 함께 본 사주로 가족 궁합과 오늘의 궁합 숫자를 알려 드려요.
             </Body>
-            <Button label="가족·친구 추가" onPress={() => navigate('/profile')} />
+            <Button label="함께 볼 사람 추가하기" onPress={() => setWizard(true)} />
           </>
         ) : (
           <>
@@ -120,10 +121,14 @@ function CompatBody() {
                   })}
               </div>
             </Section>
-            <p className="notice">사주 풀이는 재미로 보는 참고용이에요.</p>
+            <Button label="함께 볼 사람 추가하기" kind="secondary" onPress={() => setWizard(true)} />
+            <p className="notice" style={{ marginTop: 12 }}>
+              사주 풀이는 재미로 보는 참고용이에요.
+            </p>
           </>
         )}
       </Screen>
+      {wizard ? <CompatWizard onClose={() => setWizard(false)} /> : null}
     </>
   );
 }

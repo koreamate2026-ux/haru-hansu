@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AnniversaryWizard } from '../components/AnniversaryWizard';
 import { BallRow } from '../components/LottoBall';
 import { PlusOnly, TodayNumberCard } from '../components/PlusDetail';
@@ -17,14 +16,13 @@ export default function PlusFamily() {
 }
 
 function FamilyBody() {
-  const navigate = useNavigate();
   const { profiles, upsertProfile } = useApp();
   const { categories } = useTodayCategories();
   const cat = categories?.find((c) => c.key === 'family') ?? null;
   const events = useMemo(() => upcomingEvents(profiles), [profiles]);
   const next = events[0];
   // 기념일이 하나도 없으면 들어오자마자 추가 팝업을 띄운다
-  const [wizard, setWizard] = useState(() => events.length === 0 && profiles.length > 0);
+  const [wizard, setWizard] = useState(() => events.length === 0);
 
   const removeEvent = (personId: string, index: number, label: string) => {
     const p = profiles.find((x) => x.id === personId);
@@ -43,11 +41,7 @@ function FamilyBody() {
             <Body dim style={{ marginBottom: 20 }}>
               아직 등록한 가족 기념일이 없어요. 생일·결혼기념일처럼 소중한 날을 넣으면 그 날짜로 번호를 만들어 드려요.
             </Body>
-            {profiles.length ? (
-              <Button label="기념일 추가하기" onPress={() => setWizard(true)} />
-            ) : (
-              <Button label="사람 먼저 추가하기" onPress={() => navigate('/profile')} />
-            )}
+            <Button label="기념일 추가하기" onPress={() => setWizard(true)} />
           </>
         ) : (
           <>
