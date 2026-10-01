@@ -1,21 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Body, Button } from './ui';
 import { NewPersonForm, WizardSheet } from './Wizard';
-import { pairText, relationBetween, zodiacMatch } from '../lib/plusDetail';
+import { BallRow } from './LottoBall';
+import { REL_CHOICES, REL_INFO, analyzePair, type FamilyRel } from '../lib/compatDetail';
+import { saveRelation } from '../lib/relations';
 import { computeChart } from '../lib/saju';
-import { REL_NAME } from '../lib/sajuDetail';
 import type { Profile } from '../lib/types';
 import { useApp } from '../state/AppState';
 
-const RELATIONS = [
-  { emoji: '👩', label: '엄마', name: '엄마' },
-  { emoji: '👨', label: '아빠', name: '아빠' },
-  { emoji: '💑', label: '배우자·연인', name: '' },
-  { emoji: '👶', label: '자녀', name: '' },
-  { emoji: '👫', label: '형제·자매', name: '' },
-  { emoji: '🙌', label: '친구', name: '' },
-  { emoji: '✏️', label: '그 밖의 사람', name: '' },
-] as const;
+/** 고른 관계: 이름 칸을 미리 채울 값 */
+const PREFILL: Partial<Record<FamilyRel, string>> = { mother: '엄마', father: '아빠' };
 
 type Step = 'who' | 'person' | 'done';
 
@@ -29,23 +23,25 @@ const TITLES: Record<Step, string> = {
 export function CompatWizard({ onClose }: { onClose: () => void }) {
   const { profiles, activeProfile, upsertProfile } = useApp();
   const [step, setStep] = useState<Step>('who');
-  const [initialName, setInitialName] = useState('');
+  const [rel, setRel] = useState<FamilyRel | null>(null);
   const [added, setAdded] = useState<Profile | null>(null);
 
   const preview = useMemo(() => {
     if (!added || !activeProfile || added.id === activeProfile.id) return null;
     try {
-      const mine = computeChart(activeProfile);
-      const theirs = computeChart(added);
-      return { rel: relationBetween(mine, theirs), z: zodiacMatch(mine, theirs) };
+      return analyzePair(
+        { id: activeProfile.id, name: activeProfile.name, chart: computeChart(activeProfile) },
+        { id: added.id, name: added.name, chart: computeChart(added) },
+        rel,
+      );
     } catch {
       return null;
     }
-  }, [added, activeProfile]);
+  }, [added, activeProfile, rel]);
 
   const restart = () => {
     setAdded(null);
-    setInitialName('');
+    setRel(null);
     setStep('who');
   };
 
@@ -66,21 +62,21 @@ export function CompatWizard({ onClose }: { onClose: () => void }) {
               : '함께 볼 사람을 더 넣으면 가족 전체의 궁합 숫자가 달라져요.'}
           </Body>
           <div className="choices">
-            {RELATIONS.map((r) => (
+            {REL_CHOICES.map((r) => (
               <button
-                key={r.label}
+                key={r}
                 type="button"
                 className="choice"
                 onClick={() => {
-                  setInitialName(r.name);
+                  setRel(r);
                   setStep('person');
                 }}
               >
                 <span className="choice-emoji" aria-hidden>
-                  {r.emoji}
+                  {REL_INFO[r].emoji}
                 </span>
                 <span className="choice-main">
-                  <span className="choice-title">{r.label}</span>
+                  <span className="choice-title">{REL_INFO[r].label}</span>
                 </span>
                 <span className="choice-arrow">›</span>
               </button>
@@ -91,12 +87,14 @@ export function CompatWizard({ onClose }: { onClose: () => void }) {
 
       {step === 'person' ? (
         <NewPersonForm
-          key={initialName}
-          initialName={initialName}
+          key={rel ?? ''}
+          initialName={(rel && PREFILL[rel]) || ''}
           submitLabel="궁합 보기"
           onClose={onClose}
           onDone={(p) => {
             upsertProfile(p);
+            // 관계는 '지금 보는 사람 → 새 사람'으로 저장한다
+            if (activeProfile && rel) saveRelation(activeProfile.id, p.id, rel);
             setAdded(p);
             setStep('done');
           }}
@@ -106,20 +104,33 @@ export function CompatWizard({ onClose }: { onClose: () => void }) {
       {step === 'done' && added ? (
         <div className="stack">
           {preview && activeProfile ? (
-            <>
-              <div className="luck">
-                <div className="luck-top">
-                  <strong>
-                    {activeProfile.name} ↔ {added.name}
-                  </strong>
-                  <span className="dim small">{REL_NAME[preview.rel]}</span>
+            <div className="pair-card">
+              <strong>
+                {activeProfile.name} ↔ {added.name}
+              </strong>
+              <div className="score-row" style={{ marginTop: 8 }}>
+                <div className="score-bar" aria-hidden>
+                  <span style={{ width: `${preview.score}%` }} />
                 </div>
-                <Body small>{pairText(activeProfile.name, added.name, preview.rel)}</Body>
-                <Body dim small style={{ marginTop: 6 }}>
-                  {preview.z.label} · {preview.z.text}
-                </Body>
+                <span className="score-num">{preview.score}점</span>
               </div>
-            </>
+              <span className="score-grade">{preview.grade}</span>
+              <Body small style={{ margin: '8px 0 0' }}>
+                {preview.flowText} {rel ? preview.roleTip : ''}
+              </Body>
+              <div className="num-pair" style={{ marginTop: 10 }}>
+                <div>
+                  <span className="num-pair-label good">함께하면 좋은 숫자</span>
+                  <BallRow numbers={preview.goodNumbers} size={28} />
+                </div>
+                <div>
+                  <span className="num-pair-label avoid">피하면 좋은 숫자</span>
+                  <div className="balls-avoid">
+                    <BallRow numbers={preview.avoidNumbers} size={28} />
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : (
             <Body small style={{ margin: 0 }}>
               {added.name} 님을 가족에 추가했어요.

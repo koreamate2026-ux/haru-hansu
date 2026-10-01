@@ -618,3 +618,28 @@ input { font: inherit; }
 .benefit-row > span:first-child { font-size: 18px; line-height: 20px; }
 .choice.on { background: var(--surface-high); }
 .choice-action { color: var(--gold); font-size: 14px; font-weight: 700; flex: none; }
+
+/* 가족 궁합 자세히 */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.pair-card { padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.pair-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.rel-select select { font: inherit; font-size: 13px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; max-width: 150px; }
+.score-row { display: flex; align-items: center; gap: 10px; }
+.score-bar { flex: 1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.score-bar span { display: block; height: 100%; background: var(--gold); border-radius: 4px; }
+.score-num { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--gold); }
+.score-grade { display: inline-block; margin-top: 4px; font-size: 13px; font-weight: 700; }
+.score-points { list-style: none; margin: 6px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--bg); display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.score-points li { display: flex; justify-content: space-between; gap: 12px; }
+.score-points li span:last-child { font-weight: 700; color: var(--gold); flex: none; }
+.score-points li span.minus { color: var(--danger); }
+.num-pair { display: flex; flex-direction: column; gap: 10px; }
+.num-pair-label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+.num-pair-label.good { color: var(--gold); }
+.num-pair-label.avoid { color: var(--text-faint); }
+.balls-avoid { opacity: 0.45; filter: grayscale(0.7); }
+.trait-card { padding: 14px 16px; border: 1px solid var(--line); border-radius: 16px; }
+.trait-head { display: flex; align-items: center; gap: 10px; }
+.trait-emoji { font-size: 26px; line-height: 1; }
+.trait-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.trait-keywords span { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--surface-high); color: var(--text-dim); }
