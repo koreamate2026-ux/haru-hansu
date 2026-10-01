@@ -655,3 +655,8 @@ input { font: inherit; }
 .me-pick select, .person .rel-select select { font: inherit; font-size: 13px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; }
 .person .rel-select { flex: none; }
 .person .rel-select select { max-width: 120px; }
+.stories { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; padding: 12px; border-radius: 12px; background: var(--bg); }
+.story-row { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 19px; margin-top: 6px; }
+.story-row > :first-child { flex: none; }
+.balls-avoid-row > :first-child { opacity: 0.45; filter: grayscale(0.7); }
+.story-group { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; font-size: 13px; line-height: 19px; }

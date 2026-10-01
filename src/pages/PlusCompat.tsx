@@ -4,7 +4,7 @@ import { ElementBars } from '../components/ElementBars';
 import { BallRow } from '../components/LottoBall';
 import { PlusOnly, TodayNumberCard } from '../components/PlusDetail';
 import { Body, Button, Header, Screen, Section } from '../components/ui';
-import { REL_CHOICES, REL_INFO, analyzePair, familyNumbers, personalityOf, type FamilyRel } from '../lib/compatDetail';
+import { REL_CHOICES, REL_INFO, analyzePair, familyNumbers, personalityOf, type FamilyRel, type NumberStory } from '../lib/compatDetail';
 import { ELEMENT_INFO } from '../lib/elements';
 import { elementLabel } from '../lib/plusDetail';
 import { useRelations } from '../lib/relations';
@@ -39,6 +39,44 @@ function NumberPair({ good, avoid }: { good: number[]; avoid: number[] }) {
           <BallRow numbers={avoid} size={30} />
         </div>
       </div>
+    </div>
+  );
+}
+
+export /** 숫자마다 왜 좋고 왜 피하는지 펼쳐 보기 */
+function NumberStories({ stories }: { stories: NumberStory[] }) {
+  const [open, setOpen] = useState(false);
+  const groups: { kind: NumberStory['kind']; title: string }[] = [
+    { kind: 'good', title: '함께하면 좋은 숫자' },
+    { kind: 'date', title: '두 사람을 잇는 날짜 숫자' },
+    { kind: 'avoid', title: '피하면 좋은 숫자' },
+  ];
+  return (
+    <div style={{ marginTop: 8 }}>
+      <button type="button" className="text-btn" onClick={() => setOpen(!open)} aria-expanded={open}>
+        {open ? '숫자 이야기 접기' : '숫자 이야기 보기'}
+      </button>
+      {open ? (
+        <div className="stories">
+          {groups.map((g) => {
+            const list = stories.filter((x) => x.kind === g.kind);
+            if (!list.length) return null;
+            return (
+              <div key={g.kind}>
+                <span className={`num-pair-label ${g.kind === 'avoid' ? 'avoid' : 'good'}`}>{g.title}</span>
+                {list.map((x) => (
+                  <div key={`${g.kind}-${x.numbers.join('-')}`} className="story-group">
+                    <div className={g.kind === 'avoid' ? 'balls-avoid' : undefined}>
+                      <BallRow numbers={x.numbers} size={26} />
+                    </div>
+                    <span>{x.text}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -151,6 +189,7 @@ export function CompatBody() {
                 기운을 눌러요. 가족이 함께 고를 때는 아래 숫자를 참고해 보세요.
               </Body>
               <NumberPair good={family.goodNumbers} avoid={family.avoidNumbers} />
+              <NumberStories stories={family.stories} />
             </Section>
 
             <p className="notice">사주 풀이와 숫자는 재미로 보는 참고용이에요. 어떤 숫자든 당첨 확률은 같아요.</p>
@@ -217,9 +256,14 @@ function PairCard({ base, other, rel, onRel }: { base: Member; other: Member; re
 
       <div style={{ marginTop: 12 }}>
         <NumberPair good={a.goodNumbers} avoid={a.avoidNumbers} />
+        <div style={{ marginTop: 10 }}>
+          <span className="num-pair-label good">두 사람을 잇는 날짜 숫자</span>
+          <BallRow numbers={a.dateNumbers} size={30} />
+        </div>
         <Body dim small style={{ margin: '8px 0 0' }}>
           {a.numberReason}
         </Body>
+        <NumberStories stories={a.stories} />
       </div>
 
       <button type="button" className="text-btn" style={{ marginTop: 8 }} onClick={() => setOpen(!open)} aria-expanded={open}>

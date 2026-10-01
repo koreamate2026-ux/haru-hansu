@@ -1,4 +1,4 @@
-import { CONTROLS, ELEMENTS, ELEMENT_INFO, GENERATES, STEMS, controllerOf, numbersOf } from './elements';
+import { CONTROLS, ELEMENTS, ELEMENT_INFO, GENERATES, STEMS, controllerOf, numberElement, numbersOf } from './elements';
 import { hashString, seededRandom } from './random';
 import type { SajuChart } from './saju';
 import { relationOf } from './sajuDetail';
@@ -160,6 +160,56 @@ const ROLE_TIP: Record<Role, Record<Flow, string>> = {
   },
 };
 
+/** 숫자 하나에 붙는 이야기 */
+export interface NumberStory {
+  /** 같은 이유로 묶인 숫자들 */
+  numbers: number[];
+  kind: 'good' | 'avoid' | 'date';
+  element: Element;
+  text: string;
+}
+
+/** 같은 기운의 숫자를 한 이야기로 묶는다. 생일과 닿는 숫자는 따로 한마디 붙인다 */
+function groupStories(
+  kind: 'good' | 'avoid',
+  numbers: number[],
+  why: (e: Element) => string,
+  people: { name: string; chart: SajuChart }[],
+): NumberStory[] {
+  const order: Element[] = [];
+  for (const n of numbers) if (!order.includes(numberElement(n))) order.push(numberElement(n));
+  return order.map((e) => {
+    const nums = numbers.filter((n) => numberElement(n) === e);
+    const notes = nums.map((n) => (birthdayNote(n, people) ? `${n}은(는)${birthdayNote(n, people)}` : '')).filter(Boolean);
+    return { numbers: nums, kind, element: e, text: `${why(e)}${notes.length ? ' ' + notes.join(' ') : ''}` };
+  });
+}
+
+/** 오행이 관계에서 뜻하는 것 */
+const ELEMENT_MEANING: Record<Element, string> = {
+  wood: '함께 새 일을 시작하는 힘',
+  fire: '마음을 표현하고 웃게 하는 힘',
+  earth: '서로 믿고 기대는 안정',
+  metal: '맺고 끊어 정리하는 결단',
+  water: '대화로 이해하는 부드러움',
+};
+
+const birthMD = (c: SajuChart) => {
+  const [, m, d] = c.solarDate.split('-').map(Number);
+  return { m, d };
+};
+
+/** 생일과 닿는 숫자면 한마디 덧붙인다 */
+function birthdayNote(n: number, people: { name: string; chart: SajuChart }[]): string {
+  const hits: string[] = [];
+  for (const p of people) {
+    const { m, d } = birthMD(p.chart);
+    if (n === d) hits.push(`${p.name} 님 생일(${m}월 ${d}일)의 날짜`);
+    else if (n === m) hits.push(`${p.name} 님이 태어난 ${m}월`);
+  }
+  return hits.length ? ` ${hits.join(', ')} 숫자이기도 해요.` : '';
+}
+
 export interface PairAnalysis {
   score: number;
   grade: string;
@@ -174,6 +224,10 @@ export interface PairAnalysis {
   goodElements: Element[];
   avoidElements: Element[];
   numberReason: string;
+  /** 숫자마다 왜 좋고 왜 피하는지 */
+  stories: NumberStory[];
+  /** 두 사람의 생일로 만든 숫자 */
+  dateNumbers: number[];
 }
 
 const elName = (e: Element) => `${ELEMENT_INFO[e].name}(${ELEMENT_INFO[e].hanja})`;
@@ -288,6 +342,42 @@ export function analyzePair(
 
   const roleTip = ROLE_TIP[rel ? REL_INFO[rel].role : 'peer'][flow];
 
+  // 숫자 이야기: 그 숫자의 기운이 두 사람 사이에서 어떤 역할을 하는지
+  const people = [
+    { name: base.name, chart: a },
+    { name: other.name, chart: b },
+  ];
+  const goodWhy = (e: Element) => {
+    if (e === bridge) return `두 사람 사이를 이어 주는 ${elName(e)} 기운 숫자예요. 의견이 부딪칠 때 사이에서 완충이 돼 줘요.`;
+    if (e === a.usefulElement && e === b.usefulElement) return `두 사람 모두에게 필요한 ${elName(e)} 기운 숫자예요.`;
+    if (e === a.usefulElement) return `${base.name} 님에게 필요한 ${elName(e)} 기운 숫자라, ${base.name} 님 쪽 힘을 채워 줘요.`;
+    if (e === b.usefulElement) return `${other.name} 님에게 필요한 ${elName(e)} 기운 숫자라, ${other.name} 님 쪽 힘을 채워 줘요.`;
+    return `둘을 합쳐 가장 모자란 ${elName(e)} 기운을 채워 주는 숫자예요.`;
+  };
+  const avoidWhy = (e: Element) =>
+    e === strongest
+      ? `둘을 합쳐 이미 넉넉한 ${elName(e)} 기운 숫자예요. 더하면 한쪽으로 쏠리기 쉬워요.`
+      : `두 사람에게 가장 필요한 ${elName(goodTop[0])} 기운을 누르는 ${elName(e)} 기운 숫자예요.`;
+  const stories: NumberStory[] = [
+    ...groupStories('good', goodNumbers, (e) => `${goodWhy(e)} ${ELEMENT_INFO[e].name} 기운은 ${ELEMENT_MEANING[e]}을 뜻해요.`, people),
+    ...groupStories('avoid', avoidNumbers, avoidWhy, people),
+  ];
+
+  // 두 사람을 잇는 날짜 숫자: 각자의 생일 날짜와 둘을 더한 수(45를 넘으면 45로 나눈 나머지)
+  const da = birthMD(a).d;
+  const db = birthMD(b).d;
+  const sum = ((da + db - 1) % 45) + 1;
+  const dateNumbers = [...new Set([da, db, sum])];
+  for (const n of dateNumbers) {
+    const e = numberElement(n);
+    const text =
+      n === sum && n !== da && n !== db
+        ? `${base.name} 님 생일 날짜(${da})와 ${other.name} 님 생일 날짜(${db})를 더한${da + db > 45 ? `(합 ${da + db}) 뒤 1~45 안으로 줄인` : ''} 숫자예요. 두 사람이 함께 만드는 숫자라 둘이 같이 고를 때 잘 어울려요.`
+        : `${n === da ? base.name : other.name} 님 생일 날짜 숫자예요.`;
+    const tone = goodTop.includes(e) ? ' 마침 두 사람에게 좋은 기운이라 더 반가운 숫자예요.' : avoid.includes(e) ? ' 다만 피하면 좋은 기운이라 하나만 넣는 걸 추천해요.' : '';
+    stories.push({ numbers: [n], kind: 'date', element: e, text: `${text} ${elName(e)} 기운이에요.${tone}` });
+  }
+
   return {
     score,
     grade,
@@ -301,6 +391,8 @@ export function analyzePair(
     goodElements: goodTop,
     avoidElements: avoid,
     numberReason,
+    stories,
+    dateNumbers,
   };
 }
 
@@ -315,5 +407,19 @@ export function familyNumbers(members: { id: string; chart: SajuChart }[]) {
   const rand = seededRandom(hashString(members.map((m) => m.id).sort().join('|') + '|family'));
   const goodNumbers = pickFrom(good, 6, rand, new Set());
   const avoidNumbers = pickFrom(avoid, 4, rand, new Set(goodNumbers));
-  return { combined, good, avoid, goodNumbers, avoidNumbers };
+  const stories: NumberStory[] = [
+    ...groupStories(
+      'good',
+      goodNumbers,
+      (e) => `가족 모두를 합쳐 ${e === good[0] ? '가장' : '두 번째로'} 모자란 ${elName(e)} 기운 숫자예요. ${ELEMENT_INFO[e].name} 기운은 ${ELEMENT_MEANING[e]}을 뜻해서, 가족 사이에 그 힘을 더해 줘요.`,
+      [],
+    ),
+    ...groupStories(
+      'avoid',
+      avoidNumbers,
+      (e) => (e === order[order.length - 1] ? `가족이 이미 넉넉하게 가진 ${elName(e)} 기운 숫자예요.` : `가족에게 가장 필요한 ${elName(good[0])} 기운을 누르는 ${elName(e)} 기운 숫자예요.`),
+      [],
+    ),
+  ];
+  return { combined, good, avoid, goodNumbers, avoidNumbers, stories };
 }
