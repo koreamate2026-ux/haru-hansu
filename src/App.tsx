@@ -19,6 +19,8 @@ import Stats from './pages/Stats';
 import ThisWeek from './pages/ThisWeek';
 import TicketNew from './pages/TicketNew';
 import Tickets from './pages/Tickets';
+import Join from './pages/Join';
+import { getPendingJoin } from './lib/familyLink';
 import { AppStateProvider } from './state/AppState';
 import { AuthStateProvider, useAuth } from './state/AuthState';
 import { BillingStateProvider } from './state/BillingState';
@@ -46,6 +48,18 @@ function BillingReturn() {
   return null;
 }
 
+/** 로그인 전에 초대 링크를 열었다면, 로그인(가입)한 뒤 참여 화면으로 이어 준다 */
+function PendingJoin() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { account } = useAuth();
+  useEffect(() => {
+    const code = getPendingJoin();
+    if (account && code && !pathname.startsWith('/join')) navigate(`/join/${encodeURIComponent(code)}`, { replace: true });
+  }, [account, pathname, navigate]);
+  return null;
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -63,6 +77,7 @@ export default function App() {
         <HashRouter>
           <ScrollToTop />
           <BillingReturn />
+          <PendingJoin />
           <div className="app">
             <Routes>
               <Route element={<TabsLayout />}>
@@ -86,6 +101,7 @@ export default function App() {
               <Route path="ticket-new" element={<TicketNew />} />
               <Route path="draw-entry/:round" element={<DrawEntry />} />
               <Route path="about" element={<About />} />
+              <Route path="join/:code" element={<Join />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>

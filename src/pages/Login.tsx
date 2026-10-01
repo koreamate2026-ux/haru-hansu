@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Body, Button, Screen } from '../components/ui';
+import { afterAuthPath, getPendingJoin } from '../lib/familyLink';
 import { useAuth } from '../state/AuthState';
 
 export default function Login() {
@@ -12,7 +13,9 @@ export default function Login() {
   if (account) return <Navigate to="/" replace />;
 
   const submit = async () => {
-    if (await login(email.trim(), password)) navigate('/', { replace: true });
+    // 갈 곳은 로그인 전에 정해 둔다(로그인 직후 참여 화면이 초대 코드 기억을 지우기 때문)
+    const next = afterAuthPath('/');
+    if (await login(email.trim(), password)) navigate(next, { replace: true });
   };
 
   return (
@@ -20,6 +23,11 @@ export default function Login() {
       <div style={{ margin: '48px 0 40px' }}>
         <img src="/logo-mark-144.png" alt="하루 한수" width={72} height={72} style={{ display: 'block', marginBottom: 12 }} />
         <p className="welcome-mark">하루 한수</p>
+        {getPendingJoin() ? (
+          <Body small style={{ marginTop: 12, color: 'var(--gold)' }}>
+            가족 그룹 초대를 받으셨어요. 로그인하거나 가입하면 바로 참여 화면으로 이어져요.
+          </Body>
+        ) : null}
       </div>
 
       <div className="stack" style={{ gap: 8, marginBottom: 12 }}>

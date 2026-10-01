@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Body, Button, Screen, Section, Title } from '../components/ui';
-import { ApiError, api, type ApiMember } from '../lib/api';
+import { FamilyLinkWizard } from '../components/FamilyLinkWizard';
+import { ApiError, api, type ApiInvite, type ApiMember } from '../lib/api';
+import { copyText, inviteMessage, inviteUrl } from '../lib/familyLink';
 import { DEFAULT_DRAW_API } from '../lib/draws';
 import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
@@ -83,26 +85,37 @@ function FamilySync() {
 }
 
 function FamilyMembers() {
-  const { token, households, currentHouseholdId, setCurrentHousehold, reloadHouseholds } = useAuth();
+  const navigate = useNavigate();
+  const { token, households, currentHouseholdId, reloadHouseholds } = useAuth();
+  const { reload } = useApp();
   const group = households.find((h) => h.id === currentHouseholdId);
   const isOwner = group?.role === 'owner';
   const [members, setMembers] = useState<ApiMember[] | null>(null);
-  const [invite, setInvite] = useState<{ code: string; expiresAt: string } | null>(null);
+  const [invites, setInvites] = useState<ApiInvite[]>([]);
+  const [wizard, setWizard] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const loadMembers = useCallback(async () => {
-    if (!token || !currentHouseholdId) return setMembers(null);
+    if (!token || !currentHouseholdId) {
+      setMembers(null);
+      setInvites([]);
+      return;
+    }
     try {
       setMembers(await api.householdMembers(currentHouseholdId, token));
     } catch {
       setMembers(null);
     }
-  }, [token, currentHouseholdId]);
+    try {
+      setInvites(isOwner ? await api.listInvites(currentHouseholdId, token) : []);
+    } catch {
+      setInvites([]);
+    }
+  }, [token, currentHouseholdId, isOwner]);
 
   useEffect(() => {
-    setInvite(null);
     void loadMembers();
   }, [loadMembers]);
 
@@ -120,35 +133,9 @@ function FamilyMembers() {
     }
   };
 
-  const makeInvite = () =>
-    run(async () => {
-      if (!currentHouseholdId) return;
-      setInvite(await api.createInvite(currentHouseholdId, token));
-    });
-
-  const shareInvite = async () => {
-    if (!invite || !group) return;
-    const text = `[하루 한수] "${group.name}" 가족 그룹 초대 코드: ${invite.code}\n하루 한수에 로그인한 뒤 설정 > 초대 코드로 참여하기에 입력해 주세요. (7일 안에 한 번만 쓸 수 있어요)`;
-    try {
-      await navigator.clipboard.writeText(text);
-      setMsg({ ok: true, text: '초대 문구를 복사했어요. 가족에게 보내 주세요.' });
-    } catch {
-      setMsg({ ok: true, text });
-    }
-  };
-
-  const join = () =>
-    run(async () => {
-      const joined = await api.joinHousehold(joinCode, token);
-      await reloadHouseholds();
-      setCurrentHousehold(joined.id);
-      setJoinCode('');
-      setMsg({ ok: true, text: `"${joined.name}" 가족 그룹에 들어왔어요.` });
-    });
-
   const remove = (m: ApiMember) => {
     const leaving = m.isMe;
-    const question = leaving ? '이 가족 그룹에서 나갈까요?\n다시 들어오려면 새 초대 코드가 필요해요.' : `${m.displayName}님을 이 가족 그룹에서 내보낼까요?`;
+    const question = leaving ? '이 가족 그룹에서 나갈까요?\n다시 들어오려면 새 초대가 필요해요.' : `${m.displayName}님을 이 가족 그룹에서 내보낼까요?\n등록된 정보와 번호는 그룹에 남아요.`;
     if (!currentHouseholdId || !window.confirm(question)) return;
     void run(async () => {
       await api.removeMember(currentHouseholdId, m.accountId, token);
@@ -157,9 +144,36 @@ function FamilyMembers() {
         setMsg({ ok: true, text: '가족 그룹에서 나왔어요.' });
       } else {
         await loadMembers();
+        await reload();
       }
     });
   };
+
+  const unlink = (m: ApiMember) => {
+    if (!currentHouseholdId || !m.linkedPersonId) return;
+    if (!window.confirm(`${m.displayName}님과 "${m.linkedPersonName}"의 연동을 풀까요?`)) return;
+    void run(async () => {
+      await api.unlinkPerson(currentHouseholdId, m.linkedPersonId!, token);
+      await loadMembers();
+      await reload();
+    });
+  };
+
+  const copyInvite = async (inv: ApiInvite) => {
+    if (!group) return;
+    const ok = await copyText(inviteMessage(inv.code, group.name, inv.personName));
+    setMsg({ ok, text: ok ? '초대 문구를 복사했어요. 카톡이나 문자에 붙여 넣어 보내 주세요.' : inviteUrl(inv.code) });
+  };
+
+  const cancelInvite = (inv: ApiInvite) => {
+    if (!currentHouseholdId || !window.confirm('이 초대를 취소할까요? 보낸 링크로는 더 이상 참여할 수 없어요.')) return;
+    void run(async () => {
+      await api.cancelInvite(currentHouseholdId, inv.id, token);
+      await loadMembers();
+    });
+  };
+
+  const STATUS: Record<ApiInvite['status'], string> = { active: '참여 전', used: '참여함', expired: '기간 지남' };
 
   return (
     <Section title="가족 구성원">
@@ -172,8 +186,15 @@ function FamilyMembers() {
                   {m.displayName}
                   {m.isMe ? <span className="dim"> · 나</span> : null}
                 </div>
-                <div className="person-detail">{m.role === 'owner' ? '그룹을 만든 분' : '구성원'}</div>
+                <div className="person-detail">
+                  {m.role === 'owner' ? '그룹을 만든 분' : '구성원'} · {m.linkedPersonName ? `🔗 ${m.linkedPersonName}` : '연동한 사람 없음'}
+                </div>
               </div>
+              {m.linkedPersonId && (isOwner || m.isMe) ? (
+                <button type="button" className="text-btn" onClick={() => unlink(m)} disabled={busy}>
+                  연동 풀기
+                </button>
+              ) : null}
               {m.role === 'member' && (isOwner || m.isMe) ? (
                 <button type="button" className="text-btn" onClick={() => remove(m)} disabled={busy}>
                   {m.isMe ? '나가기' : '내보내기'}
@@ -184,16 +205,38 @@ function FamilyMembers() {
         </div>
       ) : null}
 
-      {isOwner ? (
-        invite ? (
-          <div className="invite-box">
-            <span className="dim small">초대 코드 · 7일 안에 한 번만 쓸 수 있어요</span>
-            <span className="invite-code">{invite.code}</span>
-            <Button label="초대 문구 복사하기" onPress={shareInvite} />
+      {group ? <Button label={isOwner ? '가족 초대하기' : '가족과 연동하기'} kind="secondary" onPress={() => setWizard(true)} /> : null}
+
+      {isOwner && invites.length ? (
+        <div style={{ marginTop: 16 }}>
+          <h3 className="detail-head">보낸 초대</h3>
+          <div className="stack" style={{ gap: 8 }}>
+            {invites.map((inv) => (
+              <div key={inv.id} className="person">
+                <div className="person-main">
+                  <div className="person-name">
+                    {inv.personName ?? '목록에 없는 사람'} <span className="dim small">· {inv.code}</span>
+                  </div>
+                  <div className="person-detail">
+                    {STATUS[inv.status]}
+                    {inv.status === 'used' && inv.usedByName ? ` · ${inv.usedByName}님` : ''}
+                    {inv.status === 'active' ? ` · ${new Date(inv.expiresAt).toLocaleDateString('ko-KR')}까지` : ''}
+                  </div>
+                </div>
+                {inv.status === 'active' ? (
+                  <>
+                    <button type="button" className="text-btn" onClick={() => copyInvite(inv)} disabled={busy}>
+                      복사
+                    </button>
+                    <button type="button" className="text-btn" onClick={() => cancelInvite(inv)} disabled={busy}>
+                      취소
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            ))}
           </div>
-        ) : (
-          <Button label="가족 초대 코드 만들기" kind="secondary" onPress={makeInvite} disabled={busy} />
-        )
+        </div>
       ) : null}
 
       <div className="row" style={{ marginTop: 16 }}>
@@ -208,13 +251,22 @@ function FamilyMembers() {
           autoCapitalize="characters"
           autoCorrect="off"
         />
-        <Button label="참여하기" kind="secondary" onPress={join} disabled={busy || joinCode.trim().length < 6} />
+        <Button label="참여하기" kind="secondary" onPress={() => navigate(`/join/${encodeURIComponent(joinCode.trim().toUpperCase())}`)} disabled={joinCode.trim().length < 6} />
       </div>
 
       {msg ? (
-        <Body small style={{ marginTop: 10, color: msg.ok ? 'var(--gold)' : 'var(--danger)', whiteSpace: 'pre-line' }}>
+        <Body small style={{ marginTop: 10, color: msg.ok ? 'var(--gold)' : 'var(--danger)', whiteSpace: 'pre-line', wordBreak: 'break-all' }}>
           {msg.text}
         </Body>
+      ) : null}
+
+      {wizard ? (
+        <FamilyLinkWizard
+          onClose={() => {
+            setWizard(false);
+            void loadMembers();
+          }}
+        />
       ) : null}
     </Section>
   );
@@ -306,6 +358,7 @@ function PlusSection() {
 export default function Settings() {
   const navigate = useNavigate();
   const { profiles, activeProfile, setActiveProfile, settings, updateSettings, resetAll } = useApp();
+  const { account } = useAuth();
   const [apiBase, setApiBase] = useState(settings.drawApiBase);
 
   const onReset = () => {
@@ -333,6 +386,7 @@ export default function Settings() {
                   <div className="person-detail">
                     {p.calendar === 'lunar' ? '음력' : '양력'} {p.year}.{p.month}.{p.day}
                     {p.hour !== null ? ` ${p.hour}시` : ' 시간 모름'}
+                    {p.linkedAccountId ? (p.linkedAccountId === account?.id ? ' · 🔗 나' : ' · 🔗 연동됨') : ''}
                   </div>
                 </button>
                 <button type="button" className="text-btn" style={{ fontSize: 15 }} onClick={() => navigate(`/profile?id=${encodeURIComponent(p.id)}`)}>

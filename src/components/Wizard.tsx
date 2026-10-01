@@ -84,9 +84,12 @@ export function NewPersonForm({
   initial,
   initialName = '',
   submitLabel = '다음',
+  checkLimit = true,
   onDone,
   onClose,
 }: {
+  /** 지금 고른 그룹의 무료 인원 한도를 미리 확인할지(다른 그룹에 넣을 때는 서버 응답으로 판단) */
+  checkLimit?: boolean;
   /** 이전 단계로 돌아왔을 때 다시 채울 값 */
   initial?: Profile | null;
   initialName?: string;
@@ -103,7 +106,7 @@ export function NewPersonForm({
   const [day, setDay] = useState(initial ? String(initial.day) : '');
   const [error, setError] = useState('');
 
-  if (atLimit && !initial) {
+  if (checkLimit && atLimit && !initial) {
     return (
       <div className="stack">
         <Body dim small style={{ margin: 0 }}>

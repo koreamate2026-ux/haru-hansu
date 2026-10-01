@@ -612,3 +612,9 @@ input { font: inherit; }
   from { transform: scale(0.96); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
+.invite-link { word-break: break-all; text-align: center; }
+.benefit-list { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; }
+.benefit-row { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 20px; }
+.benefit-row > span:first-child { font-size: 18px; line-height: 20px; }
+.choice.on { background: var(--surface-high); }
+.choice-action { color: var(--gold); font-size: 14px; font-weight: 700; flex: none; }

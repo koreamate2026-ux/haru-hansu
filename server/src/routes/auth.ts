@@ -137,6 +137,8 @@ authRouter.delete('/me', requireAuth, async (req, res) => {
         await tx.household.delete({ where: { id: h.id } });
       }
     }
+    // 가족 연동은 풀고 사람 정보는 그룹에 남긴다
+    await tx.person.updateMany({ where: { linkedAccountId: id }, data: { linkedAccountId: null } });
     await tx.account.delete({ where: { id } });
   });
   res.status(204).end();

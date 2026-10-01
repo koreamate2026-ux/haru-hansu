@@ -24,6 +24,10 @@ export interface Profile {
   gender?: 'M' | 'F' | null;
   /** 오늘의 행운 숫자 중 가족 기념일 숫자용. 최대 2개, 비워 둘 수 있음 */
   familyEvents: FamilyEvent[];
+  /** 가족 연동: 이 사람과 연결된 계정(서버 동기화 중일 때만) */
+  linkedAccountId?: string | null;
+  /** 이 사람을 등록한 계정. 지우기 권한 판단용 */
+  createdByAccountId?: string | null;
   createdAt: number;
 }
 

@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Header, Screen, Segmented, Switch, useGoBack } from '../components/ui';
+import { ApiError, api } from '../lib/api';
 import { BLOOD_TYPES, type BloodType } from '../lib/luckyNumbers';
 import { newId } from '../lib/random';
 import { BirthDateError, toSolar } from '../lib/saju';
@@ -40,8 +41,8 @@ export default function Profile() {
   const goBack = useGoBack('/settings');
   const [params] = useSearchParams();
   const id = params.get('id');
-  const { account, households, currentHouseholdId } = useAuth();
-  const { profiles, upsertProfile, deleteProfile, setActiveProfile } = useApp();
+  const { account, token, households, currentHouseholdId } = useAuth();
+  const { profiles, upsertProfile, deleteProfile, setActiveProfile, synced, reload } = useApp();
   const existing = profiles.find((p) => p.id === id);
   const { loaded: billingLoaded, premium, status: billing } = useBilling();
 
@@ -131,6 +132,26 @@ export default function Profile() {
     else goBack();
   };
 
+  // 가족 연동: 다른 계정과 연동된 사람의 이름·생년월일은 본인과 그룹을 만든 사람만 바꾼다(기념일은 누구나)
+  const linkedToMe = Boolean(existing?.linkedAccountId && existing.linkedAccountId === account.id);
+  const lockedByLink = Boolean(synced && existing?.linkedAccountId && !linkedToMe && !isOwner);
+  // 지우기는 그룹을 만든 사람과 등록한 본인만(서버와 같은 규칙)
+  const canDelete = !synced || isOwner || existing?.createdByAccountId === account.id;
+
+  const toggleLink = async () => {
+    if (!existing || !token || !currentHouseholdId) return;
+    const question = linkedToMe ? `${existing.name}님과 내 계정의 연동을 풀까요?` : `${existing.name}님이 나예요.\n내 계정과 연동할까요? 이 그룹에서 나와 연동된 다른 사람이 있으면 그 연동은 풀려요.`;
+    if (!window.confirm(question)) return;
+    try {
+      if (linkedToMe) await api.unlinkPerson(currentHouseholdId, existing.id, token);
+      else await api.linkPerson(currentHouseholdId, existing.id, token);
+      await reload();
+      if (!linkedToMe) setActiveProfile(existing.id);
+    } catch (e) {
+      window.alert(e instanceof ApiError ? e.message : '처리하지 못했어요.');
+    }
+  };
+
   const onDelete = () => {
     if (!existing) return;
     if (profiles.length === 1) return window.alert('마지막 사람은 지울 수 없어요.\n다른 사람을 먼저 추가한 뒤 지워 주세요.');
@@ -150,6 +171,12 @@ export default function Profile() {
             onSave();
           }}
         >
+          {lockedByLink ? (
+            <p className="notice" style={{ marginBottom: 16 }}>
+              🔗 {existing?.name}님 본인 계정과 연동된 정보예요. 이름·생년월일은 본인이나 가족 그룹을 만든 분만 바꿀 수 있고, 기념일은 바꿀 수 있어요.
+            </p>
+          ) : null}
+          <fieldset disabled={lockedByLink} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           <Field label="이름">
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="홍길동" maxLength={20} aria-label="이름" />
           </Field>
@@ -227,6 +254,8 @@ export default function Profile() {
             </p>
           </Field>
 
+          </fieldset>
+
           <Field label="가족 기념일 (선택)">
             {events.map((e, i) => (
               <div className="row" key={i} style={{ marginBottom: i === 0 ? 8 : 0 }}>
@@ -258,7 +287,10 @@ export default function Profile() {
             <button type="submit" className="btn primary">
               {existing ? '변경 내용 저장' : '저장하고 번호 보기'}
             </button>
-            {existing ? <Button label="이 사람 지우기" kind="danger" onPress={onDelete} /> : null}
+            {existing && synced && (!existing.linkedAccountId || linkedToMe) ? (
+              <Button label={linkedToMe ? '🔗 나와 연동됨 · 연동 풀기' : '🔗 이 사람이 나예요 (내 계정과 연동)'} kind="secondary" onPress={toggleLink} />
+            ) : null}
+            {existing && canDelete ? <Button label="이 사람 지우기" kind="danger" onPress={onDelete} /> : null}
           </div>
         </form>
       </Screen>

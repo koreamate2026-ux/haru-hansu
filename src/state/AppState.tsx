@@ -32,11 +32,13 @@ function personToProfile(p: ApiPerson): Profile {
     bloodType: p.bloodType,
     gender: p.gender ?? null,
     familyEvents: p.familyEvents,
+    linkedAccountId: p.linkedAccountId ?? null,
+    createdByAccountId: p.createdByAccountId ?? null,
     createdAt: new Date(p.createdAt).getTime(),
   };
 }
 
-function profileToPersonInput(p: Profile): ApiPersonInput {
+export function profileToPersonInput(p: Profile): ApiPersonInput {
   return {
     name: p.name,
     calendar: p.calendar,
@@ -86,6 +88,8 @@ interface AppStateValue {
   setTodayDream: (d: DreamKey) => void;
   /** 로그인 + 가족 그룹을 골라서, 사람·번호함이 서버와 맞춰지고 있는지 */
   synced: boolean;
+  /** 서버의 사람·번호함을 다시 받아온다(가족 연동 뒤 등) */
+  reload: () => Promise<void>;
   resetAll: () => void;
 }
 
@@ -98,6 +102,7 @@ function initialActiveId(profiles: Profile[]) {
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const { account, token, currentHouseholdId } = useAuth();
+  const myAccountId = account?.id ?? null;
   const synced = Boolean(account && token && currentHouseholdId);
 
   // localStorage는 동기라 첫 렌더 전에 바로 읽는다
@@ -159,8 +164,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const mapped = serverPersons.map(personToProfile);
       setProfiles(mapped);
       save(KEYS.profiles, mapped);
+      // 지금 고른 사람이 이 그룹에 없으면, 나와 연동된 사람(없으면 첫 사람)으로
+      const mine = mapped.find((p) => myAccountId && p.linkedAccountId === myAccountId);
       setActiveId((cur) => {
-        const next = cur && mapped.some((p) => p.id === cur) ? cur : (mapped[0]?.id ?? null);
+        const next = cur && mapped.some((p) => p.id === cur) ? cur : (mine?.id ?? mapped[0]?.id ?? null);
         save(KEYS.activeProfileId, next);
         return next;
       });
@@ -170,7 +177,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     } catch {
       // 서버에서 못 받아와도 로컬 데이터로 계속 동작
     }
-  }, [token, currentHouseholdId]);
+  }, [token, currentHouseholdId, myAccountId]);
 
   // 로그인하고 가족 그룹을 고르면(또는 바꾸면) 그 그룹의 사람·번호함으로 맞춘다
   useEffect(() => {
@@ -216,7 +223,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           .catch((e) => {
             // 서버가 규칙으로 거절한 새 사람(무료 인원 한도 등)은 이 기기에서도 되돌린다.
             // 네트워크 문제 같은 일시적 실패는 이 기기에는 반영된 채로 둔다
-            if (existed || !(e instanceof ApiError) || !e.code) return;
+            if (!(e instanceof ApiError) || !e.code) return;
+            if (existed) {
+              // 연동된 사람 정보처럼 권한이 없어 거절된 수정은 서버 기준으로 되돌린다
+              window.alert(e.message);
+              pullFromServer();
+              return;
+            }
             setProfiles((prev) => {
               const next = prev.filter((x) => x.id !== localId);
               save(KEYS.profiles, next);
@@ -232,7 +245,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           });
       }
     },
-    [synced, currentHouseholdId, token],
+    [synced, currentHouseholdId, token, pullFromServer],
   );
 
   const deleteProfile = useCallback(
@@ -248,10 +261,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       });
 
       if (synced) {
-        api.deletePerson(currentHouseholdId!, id, token!).catch(() => {});
+        api.deletePerson(currentHouseholdId!, id, token!).catch((e) => {
+          // 권한이 없어 거절되면 서버 기준으로 되돌린다
+          if (e instanceof ApiError && e.code) {
+            window.alert(e.message);
+            pullFromServer();
+          }
+        });
       }
     },
-    [synced, currentHouseholdId, token],
+    [synced, currentHouseholdId, token, pullFromServer],
   );
 
   const addTicket = useCallback(
@@ -367,6 +386,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     todayDream,
     setTodayDream,
     synced,
+    reload: pullFromServer,
     resetAll,
   };
 

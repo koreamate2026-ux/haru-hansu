@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { FREE_PERSON_LIMIT, billingEnabled, householdPlus } from '../lib/billing.js';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
-import { assertMember } from './households.js';
+import { assertMember, roleOf } from './households.js';
 
 export const personsRouter = Router({ mergeParams: true });
 personsRouter.use(requireAuth);
@@ -84,7 +84,7 @@ personsRouter.post('/', async (req, res) => {
     }
   }
   const { familyEvents, ...data } = parsed.data;
-  const person = await prisma.person.create({ data: { ...data, householdId } });
+  const person = await prisma.person.create({ data: { ...data, householdId, createdByAccountId: req.accountId! } });
   await replaceFamilyEvents(householdId, person.id, familyEvents);
   const withEvents = await prisma.person.findUniqueOrThrow({ where: { id: person.id }, include: { familyEvents: true } });
   res.status(201).json(toDto(withEvents));
@@ -98,6 +98,11 @@ personsRouter.patch('/:personId', async (req, res) => {
   const existing = await prisma.person.findFirst({ where: { id: req.params.personId, householdId } });
   if (!existing) return res.status(404).json({ error: '사람을 찾을 수 없어요.' });
   const { familyEvents, ...data } = parsed.data;
+  // 계정과 연동된 사람의 이름·생년월일 등은 본인과 그룹을 만든 사람만 바꿀 수 있다(기념일은 누구나)
+  if (existing.linkedAccountId && existing.linkedAccountId !== req.accountId && (await roleOf(householdId, req.accountId!)) !== 'owner') {
+    const changed = (Object.keys(data) as (keyof typeof data)[]).some((k) => data[k] !== undefined && data[k] !== (existing as Record<string, unknown>)[k]);
+    if (changed) return res.status(403).json({ error: `${existing.name} 님의 정보는 본인이나 가족 그룹을 만든 분만 바꿀 수 있어요.`, code: 'LINKED_PERSON' });
+  }
   const person = await prisma.person.update({ where: { id: existing.id }, data });
   await replaceFamilyEvents(householdId, person.id, familyEvents);
   const withEvents = await prisma.person.findUniqueOrThrow({ where: { id: person.id }, include: { familyEvents: true } });
@@ -109,6 +114,11 @@ personsRouter.delete('/:personId', async (req, res) => {
   if (!householdId) return;
   const existing = await prisma.person.findFirst({ where: { id: req.params.personId, householdId } });
   if (!existing) return res.status(404).json({ error: '사람을 찾을 수 없어요.' });
+  // 지우기는 그룹을 만든 사람과 그 사람을 등록한 본인만(예전 데이터는 등록한 사람이 비어 있어 그룹을 만든 사람만)
+  const isOwner = (await roleOf(householdId, req.accountId!)) === 'owner';
+  if (!isOwner && existing.createdByAccountId !== req.accountId) {
+    return res.status(403).json({ error: '가족 그룹을 만든 분이나 이 사람을 등록한 분만 지울 수 있어요.', code: 'PERSON_DELETE_FORBIDDEN' });
+  }
   await prisma.person.delete({ where: { id: existing.id } });
   res.status(204).end();
 });

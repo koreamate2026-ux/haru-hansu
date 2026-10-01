@@ -11,6 +11,8 @@ export const KEYS = {
   currentHouseholdId: 'currentHouseholdId',
   dailyPicks: 'dailyPicks',
   favoriteActive: 'favoriteActive',
+  /** 로그인 전에 연 초대 링크의 코드. 로그인하면 참여 화면으로 이어 준다 */
+  pendingJoin: 'pendingJoin',
 } as const;
 
 /** 브라우저 저장소(localStorage). 개인 정보 보호 모드 등에서 막히면 기본값으로 동작 */

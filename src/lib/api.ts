@@ -52,6 +52,8 @@ export interface ApiHousehold {
   role?: 'owner' | 'member';
   /** 그룹을 만든 사람이 플러스라서 인원 제한이 없는지 */
   plus?: boolean;
+  /** 그룹에 등록된 사람(/households/mine 응답에 함께 옴) */
+  persons?: { id: string }[];
 }
 
 export interface ApiFamilyEvent {
@@ -74,6 +76,9 @@ export interface ApiPerson {
   bloodType: 'A' | 'B' | 'O' | 'AB' | null;
   gender: 'M' | 'F' | null;
   familyEvents: ApiFamilyEvent[];
+  /** 가족 연동: 이 사람이 그룹의 어느 계정 본인인지 */
+  linkedAccountId?: string | null;
+  createdByAccountId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -131,11 +136,35 @@ export const api = {
   deleteTicket: (householdId: string, ticketId: string, token: string) =>
     request<void>(`/households/${householdId}/tickets/${ticketId}`, { method: 'DELETE' }, token),
 
-  createInvite: (householdId: string, token: string) =>
-    request<{ code: string; expiresAt: string }>(`/households/${householdId}/invites`, { method: 'POST' }, token),
+  createInvite: (householdId: string, personId: string | null, token: string) =>
+    request<{ id: string; code: string; expiresAt: string; personId: string | null }>(
+      `/households/${householdId}/invites`,
+      { method: 'POST', body: JSON.stringify({ personId }) },
+      token,
+    ),
+
+  listInvites: (householdId: string, token: string) => request<ApiInvite[]>(`/households/${householdId}/invites`, {}, token),
+
+  cancelInvite: (householdId: string, inviteId: string, token: string) =>
+    request<void>(`/households/${householdId}/invites/${inviteId}`, { method: 'DELETE' }, token),
+
+  invitePreview: (code: string, token: string) => request<ApiInvitePreview>(`/households/invites/${encodeURIComponent(code)}`, {}, token),
 
   joinHousehold: (code: string, token: string) =>
-    request<{ id: string; name: string }>('/households/join', { method: 'POST', body: JSON.stringify({ code }) }, token),
+    request<{ id: string; name: string; invitedPersonId: string | null }>('/households/join', { method: 'POST', body: JSON.stringify({ code }) }, token),
+
+  linkPerson: (householdId: string, personId: string, token: string) =>
+    request<void>(`/households/${householdId}/persons/${personId}/link`, { method: 'POST' }, token),
+
+  unlinkPerson: (householdId: string, personId: string, token: string) =>
+    request<void>(`/households/${householdId}/persons/${personId}/link`, { method: 'DELETE' }, token),
+
+  importHousehold: (householdId: string, fromHouseholdId: string, token: string) =>
+    request<{ persons: number; merged: number; tickets: number }>(
+      `/households/${householdId}/import`,
+      { method: 'POST', body: JSON.stringify({ fromHouseholdId }) },
+      token,
+    ),
 
   householdMembers: (householdId: string, token: string) => request<ApiMember[]>(`/households/${householdId}/members`, {}, token),
 
@@ -189,9 +218,31 @@ export interface ApiFavorite {
 
 export type ApiFavoriteInput = Omit<ApiFavorite, 'id' | 'createdAt'>;
 
+export interface ApiInvite {
+  id: string;
+  code: string;
+  personId: string | null;
+  personName: string | null;
+  status: 'active' | 'used' | 'expired';
+  usedByName: string | null;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface ApiInvitePreview {
+  householdId: string;
+  householdName: string;
+  ownerName: string;
+  personName: string | null;
+  status: 'active' | 'used' | 'expired';
+  alreadyMember: boolean;
+}
+
 export interface ApiMember {
   accountId: string;
   displayName: string;
+  linkedPersonId: string | null;
+  linkedPersonName: string | null;
   role: 'owner' | 'member';
   joinedAt: string;
   isMe: boolean;

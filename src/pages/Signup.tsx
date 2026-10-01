@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Body, Button, Header, Screen } from '../components/ui';
 import { api, ApiError } from '../lib/api';
+import { afterAuthPath } from '../lib/familyLink';
 import { useAuth } from '../state/AuthState';
 
 type Step = 'info' | 'phone' | 'code';
@@ -51,6 +52,8 @@ export default function Signup() {
     setLoading(true);
     setError(null);
     try {
+      // 갈 곳은 가입 전에 정해 둔다(가입 직후 참여 화면이 초대 코드 기억을 지우기 때문)
+      const next = afterAuthPath('/profile');
       const { verifyToken } = await api.verifyPhoneOtp(digitsOnly(phone), code);
       const ok = await signup(email.trim(), password, name.trim(), digitsOnly(phone), verifyToken);
       if (!ok) {
@@ -60,7 +63,7 @@ export default function Signup() {
       if (!(await createHousehold(`${name.trim()}의 가족`))) {
         setError('가족 그룹을 만들지 못했어요. 설정에서 다시 시도해 주세요.');
       }
-      navigate('/profile', { replace: true });
+      navigate(next, { replace: true });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : '인증번호 확인에 실패했어요.');
     } finally {

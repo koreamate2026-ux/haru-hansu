@@ -11,6 +11,7 @@ import { MAX_DAILY_PICKS, useDailyPicks, useTodayCategories } from '../lib/today
 import { useApp } from '../state/AppState';
 import { useBilling } from '../state/BillingState';
 import { useFavorites } from '../state/FavoritesState';
+import { FamilyLinkWizard } from '../components/FamilyLinkWizard';
 import { FigureArt } from '../components/FigureArt';
 
 const PERSONAL_KEYS = new Set(['zodiac', 'ohaeng', 'star', 'blood', 'stone', 'name', 'dream', 'today', 'lucky']);
@@ -31,6 +32,7 @@ export default function ThisWeek() {
   const { now, categories: allCategories } = useTodayCategories();
   const { picks: pickedNums, toggle: togglePicked, clear: clearPicked } = useDailyPicks();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
   const { premium } = useBilling();
   const { active: favorite } = useFavorites();
 
@@ -170,6 +172,14 @@ export default function ThisWeek() {
                 <span className="tile-hint">플러스 전용</span>
               </button>
             ))}
+        {/* 가족 연동은 무료 */}
+        <button type="button" className="tile" onClick={() => setLinkOpen(true)}>
+          <span className="tile-icon" aria-hidden>
+            🔗
+          </span>
+          <span className="tile-label">가족과 연동하기</span>
+          <span className="tile-hint">무료</span>
+        </button>
       </div>
 
       <h2 className="grid-head">
@@ -196,6 +206,8 @@ export default function ThisWeek() {
           </button>
         )}
       </div>
+
+      {linkOpen ? <FamilyLinkWizard onClose={() => setLinkOpen(false)} /> : null}
 
       <p className="notice" style={{ marginTop: 24 }}>숫자는 무작위로 정해지고 어떤 숫자든 확률은 같아요. 재미로 봐주세요.</p>
 
