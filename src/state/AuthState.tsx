@@ -20,8 +20,8 @@ interface AuthStateValue {
   setCurrentHousehold: (id: string | null) => void;
   loading: boolean;
   error: string | null;
-  signup: (email: string, password: string, displayName: string, phone: string, verifyToken: string) => Promise<boolean>;
-  login: (email: string, password: string) => Promise<boolean>;
+  signup: (username: string, password: string, displayName: string, phone: string, verifyToken: string) => Promise<boolean>;
+  login: (id: string, password: string) => Promise<boolean>;
   logout: () => void;
   createHousehold: (name: string) => Promise<boolean>;
   /** 가족 그룹 목록을 서버에서 다시 받아온다(참여·나가기 뒤) */
@@ -94,12 +94,12 @@ export function AuthStateProvider({ children }: { children: ReactNode }) {
   );
 
   const signup = useCallback(
-    (email: string, password: string, displayName: string, phone: string, verifyToken: string) =>
-      runAuth(() => api.signup(email, password, displayName, phone, verifyToken)),
+    (username: string, password: string, displayName: string, phone: string, verifyToken: string) =>
+      runAuth(() => api.signup(username, password, displayName, phone, verifyToken)),
     [runAuth],
   );
 
-  const login = useCallback((email: string, password: string) => runAuth(() => api.login(email, password)), [runAuth]);
+  const login = useCallback((id: string, password: string) => runAuth(() => api.login(id, password)), [runAuth]);
 
   const logout = useCallback(() => {
     setStored(null);

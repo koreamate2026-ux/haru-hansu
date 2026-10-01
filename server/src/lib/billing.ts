@@ -146,7 +146,7 @@ export async function chargePeriod({ sub, plan, orderId, periodStart, customer }
       amount: p.amount,
       orderId,
       orderName: p.name,
-      customerEmail: customer.email,
+      ...(customer.email.includes('@') ? { customerEmail: customer.email } : {}),
       customerName: customer.name,
     });
     if (r.status === 'DONE') paymentKey = r.paymentKey;

@@ -7,7 +7,7 @@ import { useAuth } from '../state/AuthState';
 export default function Login() {
   const navigate = useNavigate();
   const { account, login, loading, error, clearError } = useAuth();
-  const [email, setEmail] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
 
   if (account) return <Navigate to="/" replace />;
@@ -15,7 +15,7 @@ export default function Login() {
   const submit = async () => {
     // 갈 곳은 로그인 전에 정해 둔다(로그인 직후 참여 화면이 초대 코드 기억을 지우기 때문)
     const next = afterAuthPath('/');
-    if (await login(email.trim(), password)) navigate(next, { replace: true });
+    if (await login(loginId.trim(), password)) navigate(next, { replace: true });
   };
 
   return (
@@ -33,16 +33,16 @@ export default function Login() {
       <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
         <input
           className="input"
-          type="email"
-          value={email}
+          value={loginId}
           onChange={(e) => {
-            setEmail(e.target.value);
+            setLoginId(e.target.value);
             clearError();
           }}
-          placeholder="이메일"
+          placeholder="아이디"
           autoCapitalize="none"
           autoCorrect="off"
-          aria-label="이메일"
+          autoComplete="username"
+          aria-label="아이디"
         />
         <input
           className="input"
@@ -53,7 +53,11 @@ export default function Login() {
             clearError();
           }}
           placeholder="비밀번호"
+          autoComplete="current-password"
           aria-label="비밀번호"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && loginId.trim() && password) void submit();
+          }}
         />
       </div>
       {error ? (
@@ -61,16 +65,12 @@ export default function Login() {
           {error}
         </Body>
       ) : null}
-      <Button label={loading ? '로그인 중…' : '로그인'} onPress={submit} disabled={loading || !email.trim() || !password} />
+      <Button label={loading ? '로그인 중…' : '로그인'} onPress={submit} disabled={loading || !loginId.trim() || !password} />
 
-      <button
-        type="button"
-        className="link"
-        style={{ display: 'block', textAlign: 'center', width: '100%', marginTop: 20 }}
-        onClick={() => navigate('/signup')}
-      >
-        계정이 없으신가요? 휴대폰 인증으로 가입하기
-      </button>
+      <div className="signup-cta">
+        <span className="dim small">아직 계정이 없으신가요?</span>
+        <Button label="회원가입" kind="secondary" onPress={() => navigate('/signup')} />
+      </div>
     </Screen>
   );
 }

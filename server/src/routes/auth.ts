@@ -61,8 +61,30 @@ authRouter.post('/phone/verify', async (req, res) => {
   res.json({ verifyToken: signPhoneToken(phone) });
 });
 
+/**
+ * 로그인 아이디. DB 칸 이름은 예전 그대로 `email`이지만, 지금은 이메일이 아닌 아이디를 담는다
+ * (칸 이름을 바꾸면 db push가 데이터를 지우므로 그대로 둔다).
+ */
+const usernameSchema = z
+  .string()
+  .transform((s) => s.trim().toLowerCase())
+  .refine((s) => /^[a-z0-9_]{4,20}$/.test(s), '아이디는 영문 소문자·숫자·밑줄(_)로 4~20자로 만들어 주세요.');
+
+/** 로그인할 때 받은 값을 아이디 모양으로: 소문자로, 예전 이메일로 넣으면 @ 앞만 */
+const normalizeLoginId = (raw: string) => raw.trim().toLowerCase().split('@')[0];
+
+const accountDto = (a: { id: string; email: string; displayName: string }) => ({ id: a.id, username: a.email, email: a.email, displayName: a.displayName });
+
+/** 가입 화면에서 아이디를 쓸 수 있는지 미리 확인 */
+authRouter.get('/check-id', async (req, res) => {
+  const parsed = usernameSchema.safeParse(String(req.query.id ?? ''));
+  if (!parsed.success) return res.json({ ok: false, reason: parsed.error.issues[0]?.message });
+  const taken = await prisma.account.findUnique({ where: { email: parsed.data } });
+  res.json(taken ? { ok: false, reason: '이미 쓰고 있는 아이디예요.' } : { ok: true });
+});
+
 const signupSchema = z.object({
-  email: z.string().email(),
+  username: usernameSchema,
   password: z.string().min(8, '비밀번호는 8자 이상이어야 해요.'),
   displayName: z.string().min(1).max(20),
   phone: phoneSchema,
@@ -70,42 +92,47 @@ const signupSchema = z.object({
 });
 
 authRouter.post('/signup', async (req, res) => {
-  const parsed = signupSchema.safeParse(req.body);
+  // 예전 앱은 email 칸으로 보낸다
+  const parsed = signupSchema.safeParse({ ...req.body, username: req.body?.username ?? req.body?.email });
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? '입력을 확인해 주세요.' });
-  const { email, password, displayName, phone, verifyToken } = parsed.data;
+  const { username, password, displayName, phone, verifyToken } = parsed.data;
 
   if (!verifyPhoneToken(verifyToken, phone)) {
     return res.status(400).json({ error: '휴대폰 인증을 다시 해 주세요.' });
   }
 
-  const [existingEmail, existingPhone] = await Promise.all([
-    prisma.account.findUnique({ where: { email } }),
+  const [existingId, existingPhone] = await Promise.all([
+    prisma.account.findUnique({ where: { email: username } }),
     prisma.account.findUnique({ where: { phone } }),
   ]);
-  if (existingEmail) return res.status(409).json({ error: '이미 가입된 이메일이에요.' });
+  if (existingId) return res.status(409).json({ error: '이미 쓰고 있는 아이디예요.' });
   if (existingPhone) return res.status(409).json({ error: '이미 가입에 쓰인 번호예요.' });
 
   const passwordHash = await bcrypt.hash(password, 10);
   const account = await prisma.account.create({
-    data: { email, passwordHash, displayName, phone, phoneVerifiedAt: new Date() },
+    data: { email: username, passwordHash, displayName, phone, phoneVerifiedAt: new Date() },
   });
   const token = signToken({ accountId: account.id });
-  res.status(201).json({ token, account: { id: account.id, email: account.email, displayName: account.displayName } });
+  res.status(201).json({ token, account: accountDto(account) });
 });
 
-const loginSchema = z.object({ email: z.string().email(), password: z.string() });
+const loginSchema = z.object({ id: z.string().min(1).max(100), password: z.string() });
 
 authRouter.post('/login', async (req, res) => {
-  const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: '이메일과 비밀번호를 확인해 주세요.' });
-  const { email, password } = parsed.data;
+  // 예전 앱은 email 칸으로 보낸다
+  const parsed = loginSchema.safeParse({ ...req.body, id: req.body?.id ?? req.body?.email });
+  if (!parsed.success) return res.status(400).json({ error: '아이디와 비밀번호를 확인해 주세요.' });
+  const { id, password } = parsed.data;
 
-  const account = await prisma.account.findUnique({ where: { email } });
+  // 아이디로 찾고, 아직 이메일로 남은 계정이면 입력 그대로도 찾아 본다
+  const account =
+    (await prisma.account.findUnique({ where: { email: normalizeLoginId(id) } })) ??
+    (id.includes('@') ? await prisma.account.findUnique({ where: { email: id.trim().toLowerCase() } }) : null);
   if (!account || !(await bcrypt.compare(password, account.passwordHash))) {
-    return res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않아요.' });
+    return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않아요.' });
   }
   const token = signToken({ accountId: account.id });
-  res.json({ token, account: { id: account.id, email: account.email, displayName: account.displayName } });
+  res.json({ token, account: accountDto(account) });
 });
 
 /**

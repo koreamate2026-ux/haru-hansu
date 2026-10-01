@@ -35,6 +35,9 @@ async function request<T>(path: string, opts: RequestInit = {}, token?: string):
 
 export interface Account {
   id: string;
+  /** 로그인 아이디 */
+  username?: string;
+  /** 예전 응답 호환용(지금은 아이디와 같은 값) */
   email: string;
   displayName: string;
 }
@@ -103,11 +106,12 @@ export const api = {
   verifyPhoneOtp: (phone: string, code: string) =>
     request<{ verifyToken: string }>('/auth/phone/verify', { method: 'POST', body: JSON.stringify({ phone, code }) }),
 
-  signup: (email: string, password: string, displayName: string, phone: string, verifyToken: string) =>
-    request<AuthResult>('/auth/signup', { method: 'POST', body: JSON.stringify({ email, password, displayName, phone, verifyToken }) }),
+  signup: (username: string, password: string, displayName: string, phone: string, verifyToken: string) =>
+    request<AuthResult>('/auth/signup', { method: 'POST', body: JSON.stringify({ username, password, displayName, phone, verifyToken }) }),
 
-  login: (email: string, password: string) =>
-    request<AuthResult>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  checkId: (id: string) => request<{ ok: boolean; reason?: string }>(`/auth/check-id?id=${encodeURIComponent(id)}`),
+
+  login: (id: string, password: string) => request<AuthResult>('/auth/login', { method: 'POST', body: JSON.stringify({ id, password }) }),
 
   myHouseholds: (token: string) => request<ApiHousehold[]>('/households/mine', {}, token),
 

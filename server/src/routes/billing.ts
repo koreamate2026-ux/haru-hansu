@@ -62,7 +62,7 @@ billingRouter.post('/checkout', async (req, res) => {
   res.json({
     clientKey: tossClientKey(),
     customerKey: sub.customerKey,
-    customerEmail: account.email,
+    customerEmail: account.email.includes('@') ? account.email : undefined,
     customerName: account.displayName,
   });
 });

@@ -13,7 +13,8 @@ export default function Signup() {
 
   const [step, setStep] = useState<Step>('info');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [idCheck, setIdCheck] = useState<{ ok: boolean; text: string } | null>(null);
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -24,9 +25,28 @@ export default function Signup() {
   const digitsOnly = (s: string) => s.replace(/[^0-9]/g, '');
   const phoneOk = /^01[0-9]{8,9}$/.test(digitsOnly(phone));
 
-  const goInfo = () => {
+  const idOk = /^[a-z0-9_]{4,20}$/.test(username);
+
+  /** 아이디를 쓸 수 있는지 서버에 물어본다 */
+  const checkId = async () => {
+    if (!idOk) {
+      setIdCheck({ ok: false, text: '영문 소문자·숫자·밑줄(_)로 4~20자로 만들어 주세요.' });
+      return false;
+    }
+    try {
+      const r = await api.checkId(username);
+      setIdCheck({ ok: r.ok, text: r.ok ? '쓸 수 있는 아이디예요.' : (r.reason ?? '쓸 수 없는 아이디예요.') });
+      return r.ok;
+    } catch {
+      // 확인을 못 해도 가입할 때 서버가 한 번 더 막는다
+      setIdCheck(null);
+      return true;
+    }
+  };
+
+  const goInfo = async () => {
     if (!name.trim()) return setError('이름을 입력해 주세요.');
-    if (!/^\S+@\S+\.\S+$/.test(email)) return setError('이메일을 확인해 주세요.');
+    if (!(await checkId())) return setError('아이디를 확인해 주세요.');
     if (password.length < 8) return setError('비밀번호는 8자 이상이어야 해요.');
     setError(null);
     setStep('phone');
@@ -55,7 +75,7 @@ export default function Signup() {
       // 갈 곳은 가입 전에 정해 둔다(가입 직후 참여 화면이 초대 코드 기억을 지우기 때문)
       const next = afterAuthPath('/profile');
       const { verifyToken } = await api.verifyPhoneOtp(digitsOnly(phone), code);
-      const ok = await signup(email.trim(), password, name.trim(), digitsOnly(phone), verifyToken);
+      const ok = await signup(username, password, name.trim(), digitsOnly(phone), verifyToken);
       if (!ok) {
         setError('가입에 실패했어요. 처음부터 다시 시도해 주세요.');
         return;
@@ -84,20 +104,33 @@ export default function Signup() {
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="이름" maxLength={20} aria-label="이름" />
             <input
               className="input"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="이메일"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                setIdCheck(null);
+              }}
+              onBlur={() => {
+                if (username) void checkId();
+              }}
+              placeholder="아이디 (영문 소문자·숫자 4~20자)"
               autoCapitalize="none"
               autoCorrect="off"
-              aria-label="이메일"
+              autoComplete="username"
+              maxLength={20}
+              aria-label="아이디"
             />
+            {idCheck ? (
+              <p className="small" style={{ margin: 0, color: idCheck.ok ? 'var(--gold)' : 'var(--danger)' }} role="status">
+                {idCheck.text}
+              </p>
+            ) : null}
             <input
               className="input"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="비밀번호 (8자 이상)"
+              autoComplete="new-password"
               aria-label="비밀번호"
             />
             {error ? <Body small style={{ color: 'var(--danger)' }}>{error}</Body> : null}

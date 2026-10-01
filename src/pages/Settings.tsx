@@ -23,7 +23,7 @@ function FamilySync() {
   return (
     <Section title="가족과 연동하기">
       <Body small style={{ marginBottom: 8 }}>
-        {account?.email}로 로그인했어요.
+        {account?.username ?? account?.email.split('@')[0]} 아이디로 로그인했어요.
       </Body>
       {households.length ? (
         <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
@@ -505,7 +505,7 @@ export default function Settings() {
           개인정보처리방침
         </button>
         <Body dim small style={{ marginTop: 8 }}>
-          가족 계정에 로그인해야 사람·번호함을 볼 수 있어요. 이메일·이름·가족 그룹 이름은 서버에 저장되고, 당첨번호를 조회할 때만 회차 번호가 조회 주소로 전송돼요.
+          가족 계정에 로그인해야 사람·번호함을 볼 수 있어요. 아이디·이름·가족 그룹 이름은 서버에 저장되고, 당첨번호를 조회할 때만 회차 번호가 조회 주소로 전송돼요.
         </Body>
       </Section>
 

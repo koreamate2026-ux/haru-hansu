@@ -13,6 +13,7 @@ datasource db {
 
 model Account {
   id              String    @id @default(uuid())
+  /// 로그인 아이디(예전에는 이메일). 칸 이름을 바꾸면 db push가 데이터를 지우므로 그대로 둔다
   email           String    @unique
   passwordHash    String
   displayName     String
