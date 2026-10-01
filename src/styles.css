@@ -651,3 +651,7 @@ input { font: inherit; }
 .quota-plus { flex: none; border: 0; border-radius: 999px; padding: 4px 10px; background: var(--gold); color: var(--gold-ink); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .quota-done { margin: 4px 0 0; font-size: 13px; line-height: 19px; color: var(--text-dim); text-align: center; }
 .quota-sub { display: block; font-size: 12px; color: var(--text-faint); }
+.me-pick { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--gold); }
+.me-pick select, .person .rel-select select { font: inherit; font-size: 13px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; }
+.person .rel-select { flex: none; }
+.person .rel-select select { max-width: 120px; }

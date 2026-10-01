@@ -4,7 +4,9 @@ import { Body, Button, Screen, Section, Title } from '../components/ui';
 import { FamilyLinkWizard } from '../components/FamilyLinkWizard';
 import { ApiError, api, type ApiInvite, type ApiMember } from '../lib/api';
 import { copyText, inviteMessage, inviteUrl } from '../lib/familyLink';
+import { REL_CHOICES, REL_INFO, type FamilyRel } from '../lib/compatDetail';
 import { DEFAULT_DRAW_API } from '../lib/draws';
+import { useRelations } from '../lib/relations';
 import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
 import { BusinessInfo } from './Legal';
@@ -357,8 +359,21 @@ function PlusSection() {
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { profiles, activeProfile, setActiveProfile, settings, updateSettings, resetAll } = useApp();
-  const { account } = useAuth();
+  const { profiles, activeProfile, setActiveProfile, settings, updateSettings, resetAll, synced, reload } = useApp();
+  const { account, token, currentHouseholdId } = useAuth();
+  const relations = useRelations();
+  // 관계의 기준이 되는 '나' = 내 계정과 연동된 사람
+  const me = profiles.find((p) => account && p.linkedAccountId === account.id) ?? null;
+
+  const pickMe = async (personId: string) => {
+    if (!token || !currentHouseholdId || !personId) return;
+    try {
+      await api.linkPerson(currentHouseholdId, personId, token);
+      await reload();
+    } catch (e) {
+      window.alert(e instanceof ApiError ? e.message : '처리하지 못했어요.');
+    }
+  };
   const [apiBase, setApiBase] = useState(settings.drawApiBase);
 
   const onReset = () => {
@@ -373,6 +388,23 @@ export default function Settings() {
       <Title>설정</Title>
 
       <Section title="사람">
+        {synced && !me && profiles.length > 1 ? (
+          <div className="me-pick">
+            <span className="small">관계를 정하려면 먼저 '나'를 골라 주세요</span>
+            <select defaultValue="" onChange={(e) => pickMe(e.target.value)} aria-label="나는 누구인가요">
+              <option value="" disabled>
+                나는 누구인가요?
+              </option>
+              {profiles
+                .filter((p) => !p.linkedAccountId)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+        ) : null}
         <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
           {profiles.map((p) => {
             const on = p.id === activeProfile?.id;
@@ -389,6 +421,19 @@ export default function Settings() {
                     {p.linkedAccountId ? (p.linkedAccountId === account?.id ? ' · 🔗 나' : ' · 🔗 연동됨') : ''}
                   </div>
                 </button>
+                {me && p.id !== me.id ? (
+                  <label className="rel-select">
+                    <span className="sr-only">{p.name} 님은 나에게</span>
+                    <select value={relations.get(me.id, p.id) ?? ''} onChange={(e) => relations.set(me.id, p.id, (e.target.value || null) as FamilyRel | null)}>
+                      <option value="">관계 정하기</option>
+                      {[...REL_CHOICES, ...(relations.get(me.id, p.id) === 'parent' ? (['parent'] as FamilyRel[]) : [])].map((r) => (
+                        <option key={r} value={r}>
+                          {REL_INFO[r].emoji} {REL_INFO[r].label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
                 <button type="button" className="text-btn" style={{ fontSize: 15 }} onClick={() => navigate(`/profile?id=${encodeURIComponent(p.id)}`)}>
                   수정
                 </button>
