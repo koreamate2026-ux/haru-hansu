@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Body, Button, Screen, Section, Title } from '../components/ui';
+import { Body, Button, Screen, Section, Switch, Title } from '../components/ui';
 import { FamilyLinkWizard } from '../components/FamilyLinkWizard';
 import { ApiError, api, type ApiInvite, type ApiMember } from '../lib/api';
 import { copyText, inviteMessage, inviteUrl } from '../lib/familyLink';
 import { REL_CHOICES, REL_INFO, type FamilyRel } from '../lib/compatDetail';
 import { DEFAULT_DRAW_API } from '../lib/draws';
 import { useRelations } from '../lib/relations';
+import { SOLAR_ADJUST_MINUTES, setTrueSolarTime } from '../lib/saju';
+import { KEYS, save } from '../lib/storage';
 import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
 import { BusinessInfo } from './Legal';
@@ -442,6 +444,27 @@ export default function Settings() {
           })}
         </div>
         <Button label="가족·친구 추가" kind="secondary" onPress={() => navigate('/profile')} />
+      </Section>
+
+      <Section title="사주 계산">
+        <div className="switch-row">
+          <span>진태양시 보정 (태어난 시각 −{SOLAR_ADJUST_MINUTES}분)</span>
+          <Switch
+            value={settings.trueSolarTime !== false}
+            label="진태양시 보정"
+            onChange={(on) => {
+              // 새로고침 전에 바로 저장해 둔다(상태 업데이트는 새로고침보다 늦을 수 있음)
+              save(KEYS.settings, { ...settings, trueSolarTime: on });
+              updateSettings({ trueSolarTime: on });
+              setTrueSolarTime(on);
+              // 모든 화면의 사주를 새 기준으로 다시 계산
+              window.location.reload();
+            }}
+          />
+        </div>
+        <Body dim small style={{ marginTop: 8 }}>
+          한국 표준시는 동경 135도 기준이라 서울에서는 해가 약 {SOLAR_ADJUST_MINUTES}분 늦어요. 국내 사주 풀이처럼 이만큼 빼고 시주를 정해요. 다른 사주 앱과 시주가 다르면 꺼 보세요.
+        </Body>
       </Section>
 
       <Section title="당첨번호 조회 주소">

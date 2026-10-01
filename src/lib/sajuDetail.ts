@@ -108,7 +108,7 @@ function tendency(chart: SajuChart): SajuDetail['tendency'] {
   const money =
     score.wealth >= 3
       ? '돈의 흐름을 잘 읽고 기회를 잘 잡는 편이에요. 다만 들어온 만큼 나가기도 쉬우니 자동으로 모이는 저축 습관이 도움이 돼요.'
-      : score.wealth === 0
+      : score.wealth < 0.5
         ? '돈보다 의미와 사람을 먼저 보는 편이에요. 재테크는 규칙을 정해 두고 자동으로 굴러가게 해 두면 마음이 편해요.'
         : '크게 벌이기보다 꾸준히 모으는 데 강한 편이에요. 작은 목표를 여러 번 이루는 방식이 잘 맞아요.';
 

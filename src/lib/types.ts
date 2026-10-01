@@ -56,4 +56,6 @@ export interface DrawResult {
 export interface Settings {
   /** 당첨번호 조회 주소. 비워두면 동행복권 기본 주소를 사용 */
   drawApiBase: string;
+  /** 진태양시 보정(출생 시각에서 32분 빼기). 없으면 켜진 것으로 본다 */
+  trueSolarTime?: boolean;
 }

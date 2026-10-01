@@ -79,9 +79,12 @@ export default function Saju() {
 
       <Section>
         <PillarTable chart={c} />
-        {c.dstAdjusted ? (
+        {c.dstAdjusted || c.solarAdjustMinutes ? (
           <Body dim small style={{ marginTop: 12 }}>
-            서머타임 기간에 태어나 시계 시각에서 1시간을 빼고 계산했어요.
+            {c.dstAdjusted ? '서머타임 기간에 태어나 시계 시각에서 1시간을 빼고, ' : ''}
+            {c.solarAdjustMinutes
+              ? `한국 경도에 맞춰 태어난 시각에서 ${c.solarAdjustMinutes}분을 빼고(진태양시) 시주를 정했어요. 설정에서 끌 수 있어요.`
+              : '계산했어요.'}
           </Body>
         ) : null}
       </Section>
@@ -99,14 +102,15 @@ export default function Saju() {
       <Section title="타고난 다섯 기운">
         <ElementBars values={c.counts} mark={c.usefulElement} />
         <Body dim small style={{ marginTop: 12 }}>
-          여덟 글자가 나무·불·흙·쇠·물 중 어디에 속하는지 센 거예요. 태어난 달은 계절의 힘이 커서 두 번 셌어요.
+          여덟 글자가 나무·불·흙·쇠·물 중 어디에 속하는지 센 거예요. 태어난 달은 계절의 힘이 커서 두 번 셌고, 지지 속에 숨은 기운(지장간)도 조금씩 더했어요.
         </Body>
       </Section>
 
       <section className="section">
         <h2 className="section-title">나에게 필요한 기운: {useful.name}</h2>
         <Body>
-          <strong>{STRENGTH_LABEL[c.strength]}</strong>이에요. {STRENGTH_TEXT[c.strength]}
+          <strong>{STRENGTH_LABEL[c.strength]}</strong>이에요. {c.seasonSupport ? '태어난 계절이 나를 도와 힘을 얻었어요. ' : '태어난 계절이 나를 돕지 않아 힘이 조금 빠졌어요. '}
+          {STRENGTH_TEXT[c.strength]}
         </Body>
         <Body dim style={{ marginTop: 8 }}>
           {useful.name} 번호는 끝자리가 {useful.digits.join('·')}인 번호예요. 행운의 색은 {useful.colorName}, 방향은 {useful.direction}이에요.

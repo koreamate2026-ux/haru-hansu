@@ -88,14 +88,14 @@ function explain(chart: SajuChart, drawPillar: Pillar, numbers: number[]): strin
   reasons.push(
     `당신에게 가장 필요한 기운은 ${withJosa(u.name, '이에요', '예요')}. 그래서 ${u.name} 번호(끝자리 ${u.digits.join('·')})인 ${usefulNums.join(', ')}번을 꼭 넣었어요.`,
   );
-  const missing = chart.lacking.filter((e) => e !== chart.usefulElement && chart.counts[e] === 0);
+  const missing = chart.lacking.filter((e) => e !== chart.usefulElement && chart.counts[e] < 1);
   if (missing.length) {
     const names = missing.map((e) => ELEMENT_INFO[e].name).join('·');
     const filled = numbers.filter((n) => missing.includes(numberElement(n)));
     reasons.push(
       filled.length
-        ? `타고난 기운 중에 ${withJosa(names, '이', '가')} 하나도 없어서, 채워 주려고 ${filled.join(', ')}번을 넣었어요.`
-        : `타고난 기운 중에 ${withJosa(names, '이', '가')} 하나도 없어서 그 번호가 잘 나오게 했어요. 이번 조합엔 안 들어왔지만 다른 조합에서 자주 보일 거예요.`,
+        ? `타고난 기운 중에 ${withJosa(names, '이', '가')} 거의 없어서, 채워 주려고 ${filled.join(', ')}번을 넣었어요.`
+        : `타고난 기운 중에 ${withJosa(names, '이', '가')} 거의 없어서 그 번호가 잘 나오게 했어요. 이번 조합엔 안 들어왔지만 다른 조합에서 자주 보일 거예요.`,
     );
   }
   const d = ELEMENT_INFO[drawPillar.stemElement];

@@ -1,5 +1,6 @@
 import { Lunar, Solar, type EightChar, type SolarDate } from 'lunar-javascript';
 import { convertKoreanClock } from './koreaTime';
+import { KEYS, load } from './storage';
 import { BRANCHES, CONTROLS, ELEMENTS, GENERATES, STEMS, controllerOf, motherOf } from './elements';
 import type { Element, Profile } from './types';
 
@@ -16,8 +17,13 @@ export interface Pillar {
 export interface SajuChart {
   pillars: { year: Pillar; month: Pillar; day: Pillar; time: Pillar | null };
   dayMaster: { hanja: string; ko: string; element: Element; yang: boolean };
-  /** 오행별 점수. 월지(태어난 달의 지지)는 계절의 기운이라 2로 센다 */
+  /**
+   * 오행별 점수(풀이용). 겉 글자 8개 + 지지 속 숨은 기운(지장간)까지 센다.
+   * 월지(태어난 달의 지지)는 계절의 기운이라 2로 센다
+   */
   counts: Record<Element, number>;
+  /** 겉으로 보이는 글자만 센 개수 */
+  visibleCounts: Record<Element, number>;
   total: number;
   strength: 'strong' | 'weak' | 'balanced';
   /** 부족함을 채우거나 넘침을 덜어주는 오행 (억부법을 단순화한 용신) */
@@ -29,7 +35,43 @@ export interface SajuChart {
   animal: string;
   /** 서머타임 기간 출생이라 1시간을 빼고 계산했는지 */
   dstAdjusted: boolean;
+  /** 한국 경도에 맞춰 출생 시각을 보정했는지(분). 0이면 보정 안 함 */
+  solarAdjustMinutes: number;
+  /** 태어난 달이 나를 돕는 계절인지(득령) */
+  seasonSupport: boolean;
 }
+
+/**
+ * 진태양시 보정: 한국 표준시는 동경 135도 기준이라, 서울(약 127도)에서는 해가 약 32분 늦다.
+ * 국내 사주 풀이 관행대로 일주·시주를 정할 때 32분을 뺀다(설정에서 끌 수 있음).
+ */
+export const SOLAR_ADJUST_MINUTES = 32;
+// 설정에 저장된 값으로 시작한다(첫 화면부터 같은 기준으로 계산되도록)
+let trueSolarTime = load<{ trueSolarTime?: boolean }>(KEYS.settings, {}).trueSolarTime !== false;
+export function setTrueSolarTime(on: boolean) {
+  trueSolarTime = on;
+}
+export const isTrueSolarTime = () => trueSolarTime;
+
+/** 지장간: 지지 속에 숨은 천간(여기·중기). 본기는 지지 자체의 오행으로 이미 센다 */
+const HIDDEN_STEMS: Record<string, string[]> = {
+  子: ['壬'],
+  丑: ['癸', '辛'],
+  寅: ['戊', '丙'],
+  卯: ['甲'],
+  辰: ['乙', '癸'],
+  巳: ['戊', '庚'],
+  午: ['丙', '己'],
+  未: ['丁', '乙'],
+  申: ['戊', '壬'],
+  酉: ['庚'],
+  戌: ['辛', '丁'],
+  亥: ['戊', '甲'],
+};
+const HIDDEN_WEIGHT = 0.3;
+const HIDDEN_WEIGHT_MONTH = 0.5;
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export class BirthDateError extends Error {}
 
@@ -94,7 +136,11 @@ export const termEightChar = (p: Profile): EightChar => birthMoments(p).ecTerm;
 export function computeChart(p: Profile, minYear?: number): SajuChart {
   const { solar, conv, ecTerm } = birthMoments(p, minYear);
   // 일주·시주: 서머타임을 뺀 한국 표준시각으로. sect 2 = 야자시(23시대)는 다음 날로 넘기지 않음
-  const st = conv.standardLocal;
+  // 진태양시: 시각을 아는 사람만 32분을 뺀다(자정 무렵이면 날짜가 하루 앞으로 갈 수 있음)
+  const adjust = trueSolarTime && p.hour !== null ? SOLAR_ADJUST_MINUTES : 0;
+  const stRaw = conv.standardLocal;
+  const shifted = new Date(Date.UTC(stRaw.y, stRaw.m - 1, stRaw.d, stRaw.h, stRaw.mi) - adjust * 60000);
+  const st = { y: shifted.getUTCFullYear(), m: shifted.getUTCMonth() + 1, d: shifted.getUTCDate(), h: shifted.getUTCHours(), mi: shifted.getUTCMinutes() };
   const ec = Solar.fromYmdHms(st.y, st.m, st.d, st.h, st.mi, 0).getLunar().getEightChar();
   ec.setSect(2);
 
@@ -105,21 +151,34 @@ export function computeChart(p: Profile, minYear?: number): SajuChart {
     time: p.hour === null ? null : toPillar('시주', ec.getTime()),
   };
 
+  const visibleCounts: Record<Element, number> = { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
   const counts: Record<Element, number> = { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
   for (const key of ['year', 'month', 'day', 'time'] as const) {
     const pl = pillars[key];
     if (!pl) continue;
+    visibleCounts[pl.stemElement] += 1;
+    visibleCounts[pl.branchElement] += key === 'month' ? 2 : 1;
     counts[pl.stemElement] += 1;
     counts[pl.branchElement] += key === 'month' ? 2 : 1;
+    for (const h of HIDDEN_STEMS[pl.branch] ?? []) counts[STEMS[h].element] += key === 'month' ? HIDDEN_WEIGHT_MONTH : HIDDEN_WEIGHT;
   }
-  const total = ELEMENTS.reduce((s, e) => s + counts[e], 0);
+  for (const e of ELEMENTS) counts[e] = round1(counts[e]);
+  const total = round1(ELEMENTS.reduce((s, e) => s + counts[e], 0));
 
   const dm = STEMS[pillars.day.stem];
   const self = dm.element;
   const mother = motherOf(self);
   const support = counts[self] + counts[mother];
-  const ratio = support / total;
-  const strength: SajuChart['strength'] = ratio >= 0.55 ? 'strong' : ratio <= 0.4 ? 'weak' : 'balanced';
+  // 득령: 태어난 달(월지)이 나와 같거나 나를 낳는 기운이면 힘을 얻는다
+  const monthEl = pillars.month.branchElement;
+  const seasonSupport = monthEl === self || monthEl === mother;
+  // 통근: 지지(속 숨은 기운 포함)에 나와 같은 기운의 뿌리가 있는지
+  const rooted = (['year', 'month', 'day', 'time'] as const).some((k) => {
+    const pl = pillars[k];
+    return pl && (pl.branchElement === self || (HIDDEN_STEMS[pl.branch] ?? []).some((h) => STEMS[h].element === self));
+  });
+  const ratio = support / total + (seasonSupport ? 0.08 : -0.08) + (rooted ? 0 : -0.05);
+  const strength: SajuChart['strength'] = ratio >= 0.55 ? 'strong' : ratio <= 0.42 ? 'weak' : 'balanced';
 
   let usefulElement: Element;
   if (strength === 'weak') {
@@ -132,9 +191,10 @@ export function computeChart(p: Profile, minYear?: number): SajuChart {
     usefulElement = ELEMENTS.reduce((a, b) => (counts[b] < counts[a] ? b : a));
   }
 
+  // 부족: 숨은 기운까지 쳐도 1이 안 되는 기운(없으면 가장 적은 기운), 과다: 평균의 두 배 이상
   const min = Math.min(...ELEMENTS.map((e) => counts[e]));
   const avg = total / 5;
-  const lacking = ELEMENTS.filter((e) => counts[e] === 0 || (min > 0 && counts[e] === min));
+  const lacking = ELEMENTS.filter((e) => counts[e] < 1 || counts[e] === min);
   const excessive = ELEMENTS.filter((e) => counts[e] >= avg * 2);
 
   const lunar = solar.getLunar();
@@ -145,6 +205,7 @@ export function computeChart(p: Profile, minYear?: number): SajuChart {
     pillars,
     dayMaster: { hanja: pillars.day.stem, ko: dm.ko, element: self, yang: dm.yang },
     counts,
+    visibleCounts,
     total,
     strength,
     usefulElement,
@@ -154,6 +215,8 @@ export function computeChart(p: Profile, minYear?: number): SajuChart {
     lunarLabel,
     animal: BRANCHES[pillars.year.branch].animal,
     dstAdjusted: p.hour !== null && conv.dstMinutes > 0,
+    solarAdjustMinutes: adjust,
+    seasonSupport,
   };
 }
 
