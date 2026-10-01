@@ -132,7 +132,7 @@ export default function ThisWeek() {
             <>이번 주 번호 추천을 모두 받았어요</>
           )}
           <span className="quota-sub">
-            1주일에 {pickLimit}번 · 제{round}회 {drawDate(round).m}월 {drawDate(round).d}일(토) 추첨 후 새로 받아요
+            1주일에 {pickLimit}번 · {drawDate(round).m}월 {drawDate(round).d}일(토) 밤에 새로 받아요
           </span>
         </span>
         {!premium ? (
@@ -182,8 +182,8 @@ export default function ThisWeek() {
           ) : (
             <p className="quota-done">
               {premium
-                ? `이번 주 추천 ${pickLimit}번을 모두 받았어요. 토요일 추첨이 끝나면 새로 받을 수 있어요.`
-                : `이번 주 추천을 받았어요. 토요일 추첨이 끝나면 새로 받을 수 있어요. 플러스는 1주일에 ${WEEKLY_SETS_PLUS}번까지 받을 수 있어요.`}
+                ? `이번 주 추천 ${pickLimit}번을 모두 받았어요. 토요일 밤에 새로 받을 수 있어요.`
+                : `이번 주 추천을 받았어요. 토요일 밤에 새로 받을 수 있어요. 플러스는 1주일에 ${WEEKLY_SETS_PLUS}번까지 받을 수 있어요.`}
             </p>
           )}
         </div>

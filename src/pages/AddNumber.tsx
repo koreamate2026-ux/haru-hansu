@@ -60,8 +60,8 @@ export default function AddNumber() {
             {canStartNew
               ? '홈에서 번호함에 저장하고, 새 번호를 받으려면 홈의 "새 번호 받기"를 눌러 주세요.'
               : premium
-                ? `이번 주 추천 ${WEEKLY_SETS_PLUS}번을 모두 받았어요. 토요일 추첨이 끝나면 새로 받을 수 있어요.`
-                : `이번 주 추천을 받았어요. 토요일 추첨이 끝나면 새로 받을 수 있고, 하루 한수 플러스는 1주일에 ${WEEKLY_SETS_PLUS}번까지 받을 수 있어요.`}
+                ? `이번 주 추천 ${WEEKLY_SETS_PLUS}번을 모두 받았어요. 토요일 밤에 새로 받을 수 있어요.`
+                : `이번 주 추천을 받았어요. 토요일 밤에 새로 받을 수 있고, 하루 한수 플러스는 1주일에 ${WEEKLY_SETS_PLUS}번까지 받을 수 있어요.`}
           </Body>
           <Button label="홈으로" onPress={goHome} />
         </Screen>
