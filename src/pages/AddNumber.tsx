@@ -4,7 +4,8 @@ import { LottoBall } from '../components/LottoBall';
 import { NumberPicker } from '../components/NumberPicker';
 import { Body, Button, Screen } from '../components/ui';
 import { DREAMS, type DreamKey, type LuckyCategory } from '../lib/luckyNumbers';
-import { MAX_DAILY_PICKS, randomPick, useDailyPicks, useTodayCategories } from '../lib/todayNumbers';
+import { MAX_DAILY_PICKS, WEEKLY_SETS_PLUS, randomPick, useWeeklyPicks, useTodayCategories } from '../lib/todayNumbers';
+import { useBilling } from '../state/BillingState';
 import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
 
@@ -19,7 +20,8 @@ export default function AddNumber() {
   const { account } = useAuth();
   const { todayDream, setTodayDream } = useApp();
   const { categories } = useTodayCategories();
-  const { picks, add } = useDailyPicks();
+  const { picks, add, round, set, canStartNew } = useWeeklyPicks();
+  const { premium } = useBilling();
   const [step, setStep] = useState<Step>({ kind: 'ask' });
   const [manual, setManual] = useState<number | null>(null);
 
@@ -52,10 +54,14 @@ export default function AddNumber() {
         {header}
         <Screen>
           <h2 className="title" style={{ fontSize: 24, lineHeight: '34px' }}>
-            오늘의 숫자를 다 모았어요
+            이번 주 번호를 다 모았어요
           </h2>
           <Body dim style={{ margin: '8px 0 24px' }}>
-            홈에서 번호함에 저장하거나, 초기화하고 다시 모을 수 있어요.
+            {canStartNew
+              ? '홈에서 번호함에 저장하고, 새 번호를 받으려면 홈의 "새 번호 받기"를 눌러 주세요.'
+              : premium
+                ? `이번 주 추천 ${WEEKLY_SETS_PLUS}번을 모두 받았어요. 토요일 추첨이 끝나면 새로 받을 수 있어요.`
+                : `이번 주 추천을 받았어요. 토요일 추첨이 끝나면 새로 받을 수 있고, 하루 한수 플러스는 1주일에 ${WEEKLY_SETS_PLUS}번까지 받을 수 있어요.`}
           </Body>
           <Button label="홈으로" onPress={goHome} />
         </Screen>
@@ -79,7 +85,7 @@ export default function AddNumber() {
             <button
               type="button"
               className="choice"
-              onClick={() => setStep({ kind: 'random', ...randomPick(categories, picks) })}
+              onClick={() => setStep({ kind: 'random', ...randomPick(categories, picks, `${round}|${set}|${account.id}`) })}
             >
               <span className="choice-emoji" aria-hidden>
                 🎲

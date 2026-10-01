@@ -7,7 +7,8 @@ import { Body, Button, Screen, useToast } from '../components/ui';
 import { DREAMS, type DreamKey } from '../lib/luckyNumbers';
 import { newId } from '../lib/random';
 import { upcomingRound } from '../lib/rounds';
-import { MAX_DAILY_PICKS, useDailyPicks, useTodayCategories } from '../lib/todayNumbers';
+import { MAX_DAILY_PICKS, WEEKLY_SETS_PLUS, useTodayCategories, useWeeklyPicks } from '../lib/todayNumbers';
+import { drawDate } from '../lib/rounds';
 import { useApp } from '../state/AppState';
 import { useBilling } from '../state/BillingState';
 import { useFavorites } from '../state/FavoritesState';
@@ -30,7 +31,7 @@ export default function ThisWeek() {
   const { profiles, activeProfile, activeChart, addTicket, hasTicket, todayDream, setTodayDream } = useApp();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const { now, categories: allCategories } = useTodayCategories();
-  const { picks: pickedNums, toggle: togglePicked, clear: clearPicked } = useDailyPicks();
+  const { picks: pickedNums, toggle: togglePicked, set: pickSet, limit: pickLimit, remaining: picksRemaining, canStartNew, startNew } = useWeeklyPicks();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const { premium } = useBilling();
@@ -71,8 +72,14 @@ export default function ThisWeek() {
 
   const onSaveDailyPick = () => {
     if (pickedNums.length !== MAX_DAILY_PICKS) return;
+    // 저장해도 이번 주 번호는 그대로 둔다(새 번호는 '새 번호 받기'로만)
     onSaveTicket(pickedNums, 'today-pick');
-    clearPicked();
+  };
+
+  const onStartNew = () => {
+    const left = pickLimit - pickSet;
+    if (!window.confirm(`새 번호를 받을까요?\n지금 모은 번호는 사라지고(번호함에 저장한 번호는 남아요), 이번 주 남은 추천은 ${left - 1}번이 돼요.`)) return;
+    startNew();
   };
 
   const onSaveTicket = (nums: number[], category: string, personIds?: string[]) => {
@@ -106,6 +113,35 @@ export default function ThisWeek() {
 
   return (
     <Screen tabs>
+      <div className="quota-bar" role="status">
+        <span aria-hidden>🎟️</span>
+        <span>
+          {pickedNums.length === 0 ? (
+            <>
+              이번 주 번호 추천 <strong>{picksRemaining}번</strong> 받을 수 있어요
+            </>
+          ) : pickedNums.length < MAX_DAILY_PICKS ? (
+            <>
+              이번 주 추천 <strong>{pickSet}번째</strong>를 모으는 중이에요 ({pickedNums.length}/{MAX_DAILY_PICKS})
+            </>
+          ) : picksRemaining > 0 ? (
+            <>
+              이번 주 추천 <strong>{picksRemaining}번</strong> 더 받을 수 있어요
+            </>
+          ) : (
+            <>이번 주 번호 추천을 모두 받았어요</>
+          )}
+          <span className="quota-sub">
+            1주일에 {pickLimit}번 · 제{round}회 {drawDate(round).m}월 {drawDate(round).d}일(토) 추첨 후 새로 받아요
+          </span>
+        </span>
+        {!premium ? (
+          <button type="button" className="quota-plus" onClick={() => navigate('/premium')}>
+            플러스 {WEEKLY_SETS_PLUS}번
+          </button>
+        ) : null}
+      </div>
+
       <p className="meta" style={{ marginBottom: 4 }}>
         {activeProfile.name}님, 오늘의 숫자를 알려 드려요
       </p>
@@ -117,7 +153,9 @@ export default function ThisWeek() {
       </div>
 
       <div className="hero-main" style={{ cursor: 'default', border: 'none' }}>
-        <span className="dim small">오늘의 숫자 추가하기</span>
+        <span className="dim small">
+          이번 주 번호 모으기{pickLimit > 1 ? ` · ${pickSet}번째 추천` : ''}
+        </span>
         <div className="sheet-number" style={{ padding: '10px 0', minHeight: 56 }}>
           {pickedNums.length ? (
             <BallRow numbers={pickedNums} size={40} />
@@ -137,16 +175,17 @@ export default function ThisWeek() {
           ) : (
             <Button label={`추가하기 (${pickedNums.length}/${MAX_DAILY_PICKS})`} onPress={() => navigate('/add-number')} />
           )}
-          <div className="row">
-            <div style={{ flex: 1 }}>
-              <Button label="직접 추가" kind="secondary" onPress={() => setPickerOpen(true)} />
-            </div>
-            {pickedNums.length ? (
-              <div style={{ flex: 1 }}>
-                <Button label="초기화" kind="secondary" onPress={clearPicked} />
-              </div>
-            ) : null}
-          </div>
+          {pickedNums.length < MAX_DAILY_PICKS ? (
+            <Button label="직접 추가" kind="secondary" onPress={() => setPickerOpen(true)} />
+          ) : canStartNew ? (
+            <Button label={`새 번호 받기 (이번 주 ${pickLimit - pickSet}번 남음)`} kind="secondary" onPress={onStartNew} />
+          ) : (
+            <p className="quota-done">
+              {premium
+                ? `이번 주 추천 ${pickLimit}번을 모두 받았어요. 토요일 추첨이 끝나면 새로 받을 수 있어요.`
+                : `이번 주 추천을 받았어요. 토요일 추첨이 끝나면 새로 받을 수 있어요. 플러스는 1주일에 ${WEEKLY_SETS_PLUS}번까지 받을 수 있어요.`}
+            </p>
+          )}
         </div>
       </div>
 

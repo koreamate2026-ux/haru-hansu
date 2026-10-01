@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import type { LuckyCategory } from '../lib/luckyNumbers';
-import { MAX_DAILY_PICKS, useDailyPicks } from '../lib/todayNumbers';
+import { MAX_DAILY_PICKS, useWeeklyPicks } from '../lib/todayNumbers';
 import { useAuth } from '../state/AuthState';
 import { useBilling } from '../state/BillingState';
 import { LottoBall } from './LottoBall';
@@ -20,7 +20,7 @@ export function PlusOnly({ children }: { children: ReactNode }) {
 /** 상세 화면 맨 위의 오늘의 숫자 카드 + 담기·복사 */
 export function TodayNumberCard({ category }: { category: LuckyCategory }) {
   const toast = useToast();
-  const { picks, add } = useDailyPicks();
+  const { picks, add } = useWeeklyPicks();
   const n = category.nums[0];
   const taken = n !== undefined && picks.includes(n);
   const full = picks.length >= MAX_DAILY_PICKS;

@@ -10,6 +10,8 @@ export const KEYS = {
   auth: 'auth',
   currentHouseholdId: 'currentHouseholdId',
   dailyPicks: 'dailyPicks',
+  /** 이번 주(회차) 모은 번호와 몇 번째 추천인지 */
+  weeklyPicks: 'weeklyPicks',
   favoriteActive: 'favoriteActive',
   /** 로그인 전에 연 초대 링크의 코드. 로그인하면 참여 화면으로 이어 준다 */
   pendingJoin: 'pendingJoin',

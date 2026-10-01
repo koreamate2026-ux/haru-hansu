@@ -643,3 +643,11 @@ input { font: inherit; }
 .trait-emoji { font-size: 26px; line-height: 1; }
 .trait-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .trait-keywords span { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--surface-high); color: var(--text-dim); }
+
+/* 홈 상단: 이번 주 번호 추천 남은 횟수 */
+.quota-bar { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); font-size: 13px; line-height: 18px; }
+.quota-bar strong { color: var(--gold); }
+.quota-bar > span:nth-child(2) { flex: 1; min-width: 0; }
+.quota-plus { flex: none; border: 0; border-radius: 999px; padding: 4px 10px; background: var(--gold); color: var(--gold-ink); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.quota-done { margin: 4px 0 0; font-size: 13px; line-height: 19px; color: var(--text-dim); text-align: center; }
+.quota-sub { display: block; font-size: 12px; color: var(--text-faint); }
