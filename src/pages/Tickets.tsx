@@ -65,7 +65,6 @@ export default function Tickets() {
               <span className="faint small">{drawDate(round).label}</span>
             </div>
 
-            {!drawn ? <span className="status">추첨 전이에요. 토요일 저녁에 결과를 확인할 수 있어요.</span> : null}
             {drawn && draw ? (
               <div className="stack" style={{ gap: 8, paddingBottom: 8 }}>
                 <span className="status">당첨번호{draw.source === 'manual' ? ' (직접 입력)' : ''}</span>
