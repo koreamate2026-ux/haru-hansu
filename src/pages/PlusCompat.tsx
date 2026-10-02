@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CompatWizard } from '../components/CompatWizard';
 import { ElementBars } from '../components/ElementBars';
 import { BallRow } from '../components/LottoBall';
@@ -12,6 +12,10 @@ import { computeChart, type SajuChart } from '../lib/saju';
 import { useTodayCategories } from '../lib/todayNumbers';
 import type { Element, Profile } from '../lib/types';
 import { useApp } from '../state/AppState';
+import { useAuth } from '../state/AuthState';
+import { ApiError, api, type AiPairContent } from '../lib/api';
+import { buildPairFacts, restoreNames } from '../lib/aiFacts';
+import type { Personality } from '../lib/compatDetail';
 
 export default function PlusCompat() {
   return (
@@ -87,6 +91,13 @@ export function CompatBody() {
   const cat = categories?.find((c) => c.key === 'compat') ?? null;
   const [baseId, setBaseId] = useState<string | null>(activeProfile?.id ?? null);
   const relations = useRelations();
+  const { token } = useAuth();
+  // AI 풀이가 켜져 있는지(서버에 키가 있을 때만 버튼을 보여 준다)
+  const [aiOn, setAiOn] = useState(false);
+  useEffect(() => {
+    if (!token) return;
+    api.aiStatus(token).then((r) => setAiOn(r.enabled), () => setAiOn(false));
+  }, [token]);
 
   const members = useMemo(
     () =>
@@ -164,6 +175,9 @@ export function CompatBody() {
                       other={other}
                       rel={relations.get(base.p.id, other.p.id)}
                       onRel={(r) => relations.set(base.p.id, other.p.id, r)}
+                      baseTrait={traits[base.p.id]}
+                      otherTrait={traits[other.p.id]}
+                      aiOn={aiOn}
                     />
                   ))}
               </div>
@@ -226,7 +240,27 @@ export function CompatBody() {
   );
 }
 
-function PairCard({ base, other, rel, onRel }: { base: Member; other: Member; rel: FamilyRel | null; onRel: (r: FamilyRel | null) => void }) {
+function PairCard({
+  base,
+  other,
+  rel,
+  onRel,
+  baseTrait,
+  otherTrait,
+  aiOn,
+}: {
+  base: Member;
+  other: Member;
+  rel: FamilyRel | null;
+  onRel: (r: FamilyRel | null) => void;
+  baseTrait: Personality;
+  otherTrait: Personality;
+  aiOn: boolean;
+}) {
+  const { token, currentHouseholdId } = useAuth();
+  const [ai, setAi] = useState<AiPairContent | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState('');
   const a = useMemo(
     () =>
       analyzePair(
@@ -237,6 +271,31 @@ function PairCard({ base, other, rel, onRel }: { base: Member; other: Member; re
     [base, other, rel],
   );
   const [open, setOpen] = useState(false);
+  // 관계 등이 바뀌어 사실이 달라지면 예전 AI 풀이는 내린다
+  useEffect(() => {
+    setAi(null);
+    setAiError('');
+  }, [a]);
+
+  const loadAi = async () => {
+    if (!token || !currentHouseholdId) return;
+    setAiBusy(true);
+    setAiError('');
+    try {
+      const facts = buildPairFacts(
+        { name: base.p.name, chart: base.chart, trait: baseTrait },
+        { name: other.p.name, chart: other.chart, trait: otherTrait },
+        rel,
+        a,
+      );
+      setAi((await api.aiPair(currentHouseholdId, facts, token)).content);
+    } catch (e) {
+      setAiError(e instanceof ApiError ? e.message : 'AI 풀이를 불러오지 못했어요.');
+    } finally {
+      setAiBusy(false);
+    }
+  };
+  const named = (t: string) => restoreNames(t, base.p.name, other.p.name);
 
   return (
     <div className="pair-card">
@@ -298,6 +357,29 @@ function PairCard({ base, other, rel, onRel }: { base: Member; other: Member; re
         </Body>
         <NumberStories stories={a.stories} />
       </div>
+
+      {aiOn ? (
+        ai ? (
+          <div className="ai-box">
+            <span className="ai-badge">✨ AI 풀이</span>
+            <p className="ai-lead">{named(ai.summary)}</p>
+            <p>{named(ai.personalities)}</p>
+            <p>{named(ai.relationship)}</p>
+            <p>{named(ai.numbers)}</p>
+            <p className="ai-tip">🌱 {named(ai.tip)}</p>
+            <span className="faint small">AI가 앱의 계산 결과로 쓴 재미용 풀이예요.</span>
+          </div>
+        ) : (
+          <div style={{ marginTop: 12 }}>
+            <Button label={aiBusy ? 'AI가 풀이를 쓰는 중…' : '✨ AI 풀이 보기'} kind="secondary" onPress={loadAi} disabled={aiBusy} />
+            {aiError ? (
+              <p className="small" style={{ color: 'var(--danger)', margin: '6px 0 0' }} role="alert">
+                {aiError}
+              </p>
+            ) : null}
+          </div>
+        )
+      ) : null}
 
       <button type="button" className="text-btn" style={{ marginTop: 8 }} onClick={() => setOpen(!open)} aria-expanded={open}>
         {open ? '점수 근거 접기' : '점수 근거 보기'}

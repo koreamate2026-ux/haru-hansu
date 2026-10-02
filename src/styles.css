@@ -666,3 +666,7 @@ input { font: inherit; }
 .dyn-note { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--bg); font-size: 13px; line-height: 19px; }
 .dyn-note.good { background: var(--surface-high); }
 .switch:disabled { opacity: 0.45; cursor: default; }
+.ai-box { margin-top: 12px; padding: 14px; border-radius: 14px; border: 1px solid var(--gold); background: var(--bg); display: flex; flex-direction: column; gap: 8px; }
+.ai-box p { margin: 0; font-size: 14px; line-height: 22px; }
+.ai-box .ai-lead { font-weight: 700; }
+.ai-badge { align-self: flex-start; font-size: 12px; font-weight: 700; color: var(--gold-ink); background: var(--gold); border-radius: 999px; padding: 2px 10px; }

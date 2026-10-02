@@ -307,3 +307,22 @@ model PersonRelation {
   @@index([householdId])
   @@map("person_relations")
 }
+
+/**
+ * AI 가족 궁합 풀이 저장소. 같은 사실(이름 없이 A·B로 바꾼 값)이면 다시 만들지 않고 꺼내 쓴다.
+ * 이름·생년월일은 들어가지 않는다
+ */
+model AiInterpretation {
+  id          String   @id @default(uuid())
+  /// 사실 JSON + 풀이 버전 + 모델로 만든 해시
+  cacheKey    String   @unique
+  /// 처음 만들게 한 계정(하루 생성 횟수 제한용)
+  accountId   String
+  householdId String
+  model       String
+  content     Json
+  createdAt   DateTime @default(now())
+
+  @@index([accountId, createdAt])
+  @@map("ai_interpretations")
+}

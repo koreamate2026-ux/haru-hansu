@@ -179,6 +179,11 @@ export const api = {
   updateHouseholdSettings: (householdId: string, data: { trueSolarTime: boolean }, token: string) =>
     request<{ trueSolarTime: boolean }>(`/households/${householdId}/settings`, { method: 'PATCH', body: JSON.stringify(data) }, token),
 
+  aiStatus: (token: string) => request<{ enabled: boolean }>('/ai/status', {}, token),
+
+  aiPair: (householdId: string, facts: unknown, token: string) =>
+    request<{ content: AiPairContent; cached: boolean }>('/ai/pair', { method: 'POST', body: JSON.stringify({ householdId, facts }) }, token),
+
   importHousehold: (householdId: string, fromHouseholdId: string, token: string) =>
     request<{ persons: number; merged: number; tickets: number }>(
       `/households/${householdId}/import`,
@@ -289,4 +294,13 @@ export interface BillingCheckout {
   customerKey: string;
   customerEmail: string;
   customerName: string;
+}
+
+/** AI 가족 궁합 풀이(이름 대신 A님·B님으로 옴) */
+export interface AiPairContent {
+  summary: string;
+  personalities: string;
+  relationship: string;
+  numbers: string;
+  tip: string;
 }
