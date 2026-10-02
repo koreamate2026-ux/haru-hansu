@@ -192,6 +192,7 @@ function FamilyMembers() {
                 </div>
                 <div className="person-detail">
                   {m.role === 'owner' ? '그룹을 만든 분' : '구성원'} · {m.linkedPersonName ? `🔗 ${m.linkedPersonName}` : '연동한 사람 없음'}
+                  {m.sajuShared === false ? ' · 🔒 사주 비공개' : ''}
                 </div>
               </div>
               {m.linkedPersonId && (isOwner || m.isMe) ? (
@@ -362,8 +363,10 @@ function PlusSection() {
 export default function Settings() {
   const navigate = useNavigate();
   const { profiles, activeProfile, setActiveProfile, settings, updateSettings, resetAll, synced, reload } = useApp();
-  const { account, token, currentHouseholdId } = useAuth();
+  const { account, token, currentHouseholdId, households } = useAuth();
   const relations = useRelations();
+  // 사주 계산 기준은 가족 그룹을 만든 사람만 바꾼다
+  const solarLocked = synced && households.find((h) => h.id === currentHouseholdId)?.role !== 'owner';
   // 관계의 기준이 되는 '나' = 내 계정과 연동된 사람
   const me = profiles.find((p) => account && p.linkedAccountId === account.id) ?? null;
 
@@ -444,6 +447,29 @@ export default function Settings() {
           })}
         </div>
         <Button label="가족·친구 추가" kind="secondary" onPress={() => navigate('/profile')} />
+        {synced && me ? (
+          <>
+            <div className="switch-row">
+              <span>내 사주를 가족과 함께 보기</span>
+              <Switch
+                value={me.shareSaju === true}
+                label="내 사주를 가족과 함께 보기"
+                onChange={async (on) => {
+                  if (!token || !currentHouseholdId) return;
+                  try {
+                    await api.setSajuShare(currentHouseholdId, me.id, on, token);
+                    await reload();
+                  } catch (e) {
+                    window.alert(e instanceof ApiError ? e.message : '바꾸지 못했어요.');
+                  }
+                }}
+              />
+            </div>
+            <Body dim small style={{ marginTop: 6 }}>
+              {me.shareSaju ? '가족이 내 사주로 가족 궁합·가족 숫자를 함께 봐요.' : '나만 보는 중이에요. 다른 가족의 화면에는 내 정보가 보이지 않아요.'}
+            </Body>
+          </>
+        ) : null}
       </Section>
 
       <Section title="사주 계산">
@@ -452,7 +478,17 @@ export default function Settings() {
           <Switch
             value={settings.trueSolarTime !== false}
             label="진태양시 보정"
-            onChange={(on) => {
+            disabled={solarLocked}
+            onChange={async (on) => {
+              // 가족 그룹을 쓰는 중이면 그룹 설정으로 저장해 가족 모두가 같은 기준으로 계산한다
+              if (synced && token && currentHouseholdId) {
+                try {
+                  await api.updateHouseholdSettings(currentHouseholdId, { trueSolarTime: on }, token);
+                } catch (e) {
+                  window.alert(e instanceof ApiError ? e.message : '바꾸지 못했어요.');
+                  return;
+                }
+              }
               // 새로고침 전에 바로 저장해 둔다(상태 업데이트는 새로고침보다 늦을 수 있음)
               save(KEYS.settings, { ...settings, trueSolarTime: on });
               updateSettings({ trueSolarTime: on });
@@ -463,7 +499,12 @@ export default function Settings() {
           />
         </div>
         <Body dim small style={{ marginTop: 8 }}>
-          한국 표준시는 동경 135도 기준이라 서울에서는 해가 약 {SOLAR_ADJUST_MINUTES}분 늦어요. 국내 사주 풀이처럼 이만큼 빼고 시주를 정해요. 다른 사주 앱과 시주가 다르면 꺼 보세요.
+          한국 표준시는 동경 135도 기준이라 서울에서는 해가 약 {SOLAR_ADJUST_MINUTES}분 늦어요. 국내 사주 풀이처럼 이만큼 빼고 시주를 정해요.{' '}
+          {synced
+            ? solarLocked
+              ? '가족이 모두 같은 기준으로 보도록 가족 그룹을 만든 분이 정해요.'
+              : '가족 그룹 전체에 똑같이 적용돼요.'
+            : '다른 사주 앱과 시주가 다르면 꺼 보세요.'}
         </Body>
       </Section>
 

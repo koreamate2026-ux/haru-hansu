@@ -3,7 +3,8 @@ import { ApiError, api, type ApiPerson, type ApiPersonInput, type ApiTicket } fr
 import { fetchDraw } from '../lib/draws';
 import type { DreamKey } from '../lib/luckyNumbers';
 import { todayKST } from '../lib/rounds';
-import { computeChart, type SajuChart } from '../lib/saju';
+import { remapRelationId, syncRelations } from '../lib/relations';
+import { computeChart, isTrueSolarTime, setTrueSolarTime, type SajuChart } from '../lib/saju';
 import { KEYS, clearAll, load, save } from '../lib/storage';
 import type { DrawResult, Profile, SavedTicket, Settings } from '../lib/types';
 import { useAuth } from './AuthState';
@@ -34,6 +35,7 @@ function personToProfile(p: ApiPerson): Profile {
     familyEvents: p.familyEvents,
     linkedAccountId: p.linkedAccountId ?? null,
     createdByAccountId: p.createdByAccountId ?? null,
+    shareSaju: p.shareSaju ?? null,
     createdAt: new Date(p.createdAt).getTime(),
   };
 }
@@ -90,6 +92,8 @@ interface AppStateValue {
   synced: boolean;
   /** 서버의 사람·번호함을 다시 받아온다(가족 연동 뒤 등) */
   reload: () => Promise<void>;
+  /** 지금 그룹의 사람 목록을 서버에서 한 번이라도 받아왔는지 */
+  serverLoaded: boolean;
   resetAll: () => void;
 }
 
@@ -113,6 +117,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(() => ({ ...DEFAULT_SETTINGS, ...load<Partial<Settings>>(KEYS.settings, {}) }));
   const [dreamMap, setDreamMap] = useState<DreamMap>(() => load<DreamMap>(KEYS.dream, {}));
 
+  const [serverLoaded, setServerLoaded] = useState(false);
   const profilesRef = useRef(profiles);
   useEffect(() => {
     profilesRef.current = profiles;
@@ -157,11 +162,23 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const pullFromServer = useCallback(async () => {
     if (!token || !currentHouseholdId) return;
     try {
-      const [serverPersons, serverTickets] = await Promise.all([
+      const [serverPersons, serverTickets, groupSettings] = await Promise.all([
         api.listPersons(currentHouseholdId, token),
         api.listTickets(currentHouseholdId, token),
+        api.householdSettings(currentHouseholdId, token).catch(() => null),
       ]);
+      // 진태양시 보정은 가족 그룹이 정한 값을 따른다(사람을 다시 그리기 전에 맞춰야 새 기준으로 계산됨)
+      if (groupSettings && groupSettings.trueSolarTime !== isTrueSolarTime()) {
+        setTrueSolarTime(groupSettings.trueSolarTime);
+        setSettings((prev) => {
+          const next = { ...prev, trueSolarTime: groupSettings.trueSolarTime };
+          save(KEYS.settings, next);
+          return next;
+        });
+      }
       const mapped = serverPersons.map(personToProfile);
+      // 관계도 가족 그룹 것으로 맞춘다
+      void syncRelations(currentHouseholdId, token, mapped.map((p) => p.id));
       setProfiles(mapped);
       save(KEYS.profiles, mapped);
       // 지금 고른 사람이 이 그룹에 없으면, 나와 연동된 사람(없으면 첫 사람)으로
@@ -171,6 +188,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         save(KEYS.activeProfileId, next);
         return next;
       });
+      setServerLoaded(true);
       const mappedTickets = serverTickets.map(apiTicketToLocal);
       setTickets(mappedTickets);
       save(KEYS.tickets, mappedTickets);
@@ -181,6 +199,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   // 로그인하고 가족 그룹을 고르면(또는 바꾸면) 그 그룹의 사람·번호함으로 맞춘다
   useEffect(() => {
+    setServerLoaded(false);
+    if (!synced) void syncRelations(null, null, []);
     if (synced) pullFromServer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [synced, currentHouseholdId]);
@@ -208,6 +228,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         call
           .then((server) => {
             if (server.id === localId) return;
+            remapRelationId(localId, server.id);
             // 새로 만든 사람은 로컬 임시 id를 서버가 준 진짜 id로 바꿔치기
             setProfiles((prev) => {
               const next = prev.map((x) => (x.id === localId ? { ...x, id: server.id } : x));
@@ -387,6 +408,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setTodayDream,
     synced,
     reload: pullFromServer,
+    serverLoaded,
     resetAll,
   };
 

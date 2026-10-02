@@ -116,6 +116,7 @@ model Household {
   members       HouseholdMember[]
   persons       Person[]
   familyEvents  FamilyEvent[]
+  relations     PersonRelation[]
   tickets       SavedTicket[]
   settings      HouseholdSettings?
   invites       HouseholdInvite[]
@@ -191,6 +192,8 @@ model Person {
   linkedAccountId    String?
   /// 등록한 계정. 지우기 권한 판단용(예전 데이터는 비어 있음)
   createdByAccountId String?
+  /// 연동된 본인이 내 사주를 가족과 함께 볼지. null = 아직 정하지 않음, false면 다른 가족에게는 이 사람을 보내지 않는다
+  shareSaju          Boolean?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -198,6 +201,8 @@ model Person {
   dailyDreams   DailyDream[]
   ticketPersons TicketPerson[]
   familyEvents  FamilyEvent[]
+  relationsFrom PersonRelation[] @relation("relationFrom")
+  relationsTo   PersonRelation[] @relation("relationTo")
 
   @@unique([householdId, linkedAccountId])
   @@map("persons")
@@ -273,8 +278,32 @@ model DrawResult {
 model HouseholdSettings {
   householdId String  @id
   drawApiBase String  @default("")
+  /// 진태양시 보정(출생 시각 −32분). 가족이 모두 같은 기준으로 사주를 보도록 그룹 단위로 둔다
+  trueSolarTime Boolean @default(true)
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
 
   @@map("household_settings")
+}
+
+/**
+ * 가족 궁합용 두 사람의 관계. "from 사람에게 to 사람은 rel"(예: 재호에게 엄마는 mother).
+ * 반대 방향은 화면에서 뒤집어 읽으므로 한 쌍에 한 줄만 둔다. 누가 보든 같은 사실이라 그룹이 함께 쓴다
+ */
+model PersonRelation {
+  id           String   @id @default(uuid())
+  householdId  String
+  fromPersonId String
+  toPersonId   String
+  /// mother | father | parent | spouse | child | sibling | grandparent | grandchild | friend | other
+  rel          String
+  updatedAt    DateTime @updatedAt
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  from      Person    @relation("relationFrom", fields: [fromPersonId], references: [id], onDelete: Cascade)
+  to        Person    @relation("relationTo", fields: [toPersonId], references: [id], onDelete: Cascade)
+
+  @@unique([fromPersonId, toPersonId])
+  @@index([householdId])
+  @@map("person_relations")
 }

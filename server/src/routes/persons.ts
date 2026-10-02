@@ -60,7 +60,12 @@ personsRouter.get('/', async (req, res) => {
   const householdId = await guard(req, res);
   if (!householdId) return;
   const persons = await prisma.person.findMany({
-    where: { householdId },
+    where: {
+      householdId,
+      // 본인이 사주 공유를 원하지 않은(false) 사람은 본인에게만 보낸다.
+      // NOT으로 쓰면 아직 안 정한(null) 사람까지 SQL NULL 비교로 빠지므로 보낼 경우를 그대로 나열한다
+      OR: [{ shareSaju: null }, { shareSaju: true }, { linkedAccountId: req.accountId! }],
+    },
     include: { familyEvents: true },
     orderBy: { createdAt: 'asc' },
   });

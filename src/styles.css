@@ -665,3 +665,4 @@ input { font: inherit; }
 .dyn-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 19px; }
 .dyn-note { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--bg); font-size: 13px; line-height: 19px; }
 .dyn-note.good { background: var(--surface-high); }
+.switch:disabled { opacity: 0.45; cursor: default; }

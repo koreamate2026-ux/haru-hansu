@@ -82,6 +82,8 @@ export interface ApiPerson {
   /** 가족 연동: 이 사람이 그룹의 어느 계정 본인인지 */
   linkedAccountId?: string | null;
   createdByAccountId?: string | null;
+  /** 연동된 본인이 사주를 가족과 함께 볼지(null = 아직 안 정함) */
+  shareSaju?: boolean | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -160,8 +162,22 @@ export const api = {
   linkPerson: (householdId: string, personId: string, token: string) =>
     request<void>(`/households/${householdId}/persons/${personId}/link`, { method: 'POST' }, token),
 
+  setSajuShare: (householdId: string, personId: string, share: boolean, token: string) =>
+    request<void>(`/households/${householdId}/persons/${personId}/share`, { method: 'PATCH', body: JSON.stringify({ share }) }, token),
+
   unlinkPerson: (householdId: string, personId: string, token: string) =>
     request<void>(`/households/${householdId}/persons/${personId}/link`, { method: 'DELETE' }, token),
+
+  listRelations: (householdId: string, token: string) =>
+    request<{ fromPersonId: string; toPersonId: string; rel: string }[]>(`/households/${householdId}/relations`, {}, token),
+
+  putRelation: (householdId: string, fromPersonId: string, toPersonId: string, rel: string | null, token: string) =>
+    request<void>(`/households/${householdId}/relations`, { method: 'PUT', body: JSON.stringify({ fromPersonId, toPersonId, rel }) }, token),
+
+  householdSettings: (householdId: string, token: string) => request<{ trueSolarTime: boolean }>(`/households/${householdId}/settings`, {}, token),
+
+  updateHouseholdSettings: (householdId: string, data: { trueSolarTime: boolean }, token: string) =>
+    request<{ trueSolarTime: boolean }>(`/households/${householdId}/settings`, { method: 'PATCH', body: JSON.stringify(data) }, token),
 
   importHousehold: (householdId: string, fromHouseholdId: string, token: string) =>
     request<{ persons: number; merged: number; tickets: number }>(
@@ -247,6 +263,8 @@ export interface ApiMember {
   displayName: string;
   linkedPersonId: string | null;
   linkedPersonName: string | null;
+  /** 연동된 사람의 사주 공유 여부(null = 아직 안 정함) */
+  sajuShared: boolean | null;
   role: 'owner' | 'member';
   joinedAt: string;
   isMe: boolean;

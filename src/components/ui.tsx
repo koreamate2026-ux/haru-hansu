@@ -91,8 +91,8 @@ export function Segmented<T extends string>({
   );
 }
 
-export function Switch({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
-  return <button type="button" role="switch" aria-checked={value} aria-label={label} className="switch" onClick={() => onChange(!value)} />;
+export function Switch({ value, onChange, label, disabled }: { value: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
+  return <button type="button" role="switch" aria-checked={value} aria-label={label} className="switch" disabled={disabled} onClick={() => onChange(!value)} />;
 }
 
 const TABS = [

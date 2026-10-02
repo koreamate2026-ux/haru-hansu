@@ -20,6 +20,7 @@ import ThisWeek from './pages/ThisWeek';
 import TicketNew from './pages/TicketNew';
 import Tickets from './pages/Tickets';
 import Join from './pages/Join';
+import { SajuShareGate } from './components/SajuShareGate';
 import { getPendingJoin } from './lib/familyLink';
 import { AppStateProvider } from './state/AppState';
 import { AuthStateProvider, useAuth } from './state/AuthState';
@@ -78,6 +79,7 @@ export default function App() {
           <ScrollToTop />
           <BillingReturn />
           <PendingJoin />
+          <SajuShareGate />
           <div className="app">
             <Routes>
               <Route element={<TabsLayout />}>

@@ -1,25 +1,27 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Body, Button, Header, Screen } from '../components/ui';
+import { ShareChoice } from '../components/SajuShareGate';
 import { ErrorText, NewPersonForm, WizardSheet } from '../components/Wizard';
 import { ApiError, api, type ApiInvitePreview, type ApiPerson } from '../lib/api';
 import { setPendingJoin } from '../lib/familyLink';
 import { profileToPersonInput, useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
 
-type Step = 'loading' | 'confirm' | 'me' | 'newMe' | 'import' | 'done' | 'problem';
+type Step = 'loading' | 'confirm' | 'me' | 'newMe' | 'share' | 'import' | 'done' | 'problem';
 
 const TITLES: Record<Step, string> = {
   loading: '초대를 확인하고 있어요',
   confirm: '가족 그룹에 참여할까요?',
   me: '나는 누구인가요?',
+  share: '내 사주를 가족과 함께 볼까요?',
   newMe: '내 정보를 알려 주세요',
   import: '원래 쓰던 정보도 가져올까요?',
   done: '가족과 연동했어요',
   problem: '초대를 열 수 없어요',
 };
 
-const STEP_INDEX: Partial<Record<Step, number>> = { confirm: 0, me: 1, newMe: 1, import: 2 };
+const STEP_INDEX: Partial<Record<Step, number>> = { confirm: 0, me: 1, newMe: 1, share: 2, import: 3 };
 
 /**
  * 초대 링크(#/join/코드)로 들어오는 참여 화면.
@@ -91,7 +93,9 @@ export default function Join() {
   // 내가 만든 다른 그룹 중 사람이 등록된 곳(원래 쓰던 정보)
   const myOldGroups = households.filter((h) => h.role === 'owner' && h.id !== joined?.id && (h.persons?.length ?? 0) > 0);
 
-  const afterMe = () => setStep(myOldGroups.length ? 'import' : 'done');
+  const afterShare = () => setStep(myOldGroups.length ? 'import' : 'done');
+  /** 나를 골랐으면 사주 공유 여부를 묻고, 건너뛰었으면 바로 다음으로 */
+  const afterMe = (linked?: string) => (linked ? setStep('share') : afterShare());
 
   const join = () =>
     run(async () => {
@@ -109,7 +113,7 @@ export default function Join() {
       if (!joined || !picked) return;
       await api.linkPerson(joined.id, picked, token);
       setMyPersonId(picked);
-      afterMe();
+      afterMe(picked);
     });
 
   const finish = async () => {
@@ -135,7 +139,7 @@ export default function Join() {
         label="가족 그룹 참여"
         title={TITLES[step]}
         stepIndex={STEP_INDEX[step]}
-        stepCount={3}
+        stepCount={4}
         onBack={goBack[step]}
         onClose={() => navigate('/', { replace: true })}
       >
@@ -211,7 +215,7 @@ export default function Join() {
             <ErrorText text={error} />
             <Button label="이 사람이 나예요" onPress={linkPicked} disabled={!picked || busy} />
             <Button label="목록에 없어요" kind="secondary" onPress={() => setStep('newMe')} disabled={busy} />
-            <button type="button" className="text-btn" style={{ alignSelf: 'center' }} onClick={afterMe}>
+            <button type="button" className="text-btn" style={{ alignSelf: 'center' }} onClick={() => afterMe()}>
               나중에 할게요
             </button>
           </div>
@@ -229,12 +233,25 @@ export default function Join() {
                   const created = await api.createPerson(joined.id, profileToPersonInput(p), token);
                   await api.linkPerson(joined.id, created.id, token);
                   setMyPersonId(created.id);
-                  afterMe();
+                  afterMe(created.id);
                 })
               }
             />
             <ErrorText text={error} />
           </>
+        ) : null}
+
+        {step === 'share' && joined && myPersonId ? (
+          <ShareChoice
+            busy={busy}
+            error={error}
+            onChoose={(share) =>
+              run(async () => {
+                await api.setSajuShare(joined.id, myPersonId, share, token);
+                afterShare();
+              })
+            }
+          />
         ) : null}
 
         {step === 'import' && joined ? (

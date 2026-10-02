@@ -28,6 +28,8 @@ export interface Profile {
   linkedAccountId?: string | null;
   /** 이 사람을 등록한 계정. 지우기 권한 판단용 */
   createdByAccountId?: string | null;
+  /** 연동된 본인이 사주를 가족과 함께 볼지(null = 아직 안 정함) */
+  shareSaju?: boolean | null;
   createdAt: number;
 }
 

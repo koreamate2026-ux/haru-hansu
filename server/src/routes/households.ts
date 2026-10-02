@@ -203,13 +203,14 @@ householdsRouter.get('/:householdId/members', async (req, res) => {
     include: { account: { select: { displayName: true } } },
     orderBy: { joinedAt: 'asc' },
   });
-  const linked = await prisma.person.findMany({ where: { householdId, linkedAccountId: { not: null } }, select: { id: true, name: true, linkedAccountId: true } });
+  const linked = await prisma.person.findMany({ where: { householdId, linkedAccountId: { not: null } }, select: { id: true, name: true, linkedAccountId: true, shareSaju: true } });
   res.json(
     members.map((m) => ({
       accountId: m.accountId,
       displayName: m.account.displayName,
       linkedPersonId: linked.find((p) => p.linkedAccountId === m.accountId)?.id ?? null,
       linkedPersonName: linked.find((p) => p.linkedAccountId === m.accountId)?.name ?? null,
+      sajuShared: linked.find((p) => p.linkedAccountId === m.accountId)?.shareSaju ?? null,
       role: m.role,
       joinedAt: m.joinedAt,
       isMe: m.accountId === req.accountId,
@@ -230,7 +231,7 @@ householdsRouter.delete('/:householdId/members/:accountId', async (req, res) => 
   const removed = await prisma.householdMember.deleteMany({ where: { householdId, accountId, role: 'member' } });
   if (removed.count === 0) return res.status(404).json({ error: '구성원을 찾을 수 없어요.' });
   // 그 사람의 정보와 번호는 그룹에 남기고 계정 연결만 푼다
-  await prisma.person.updateMany({ where: { householdId, linkedAccountId: accountId }, data: { linkedAccountId: null } });
+  await prisma.person.updateMany({ where: { householdId, linkedAccountId: accountId }, data: { linkedAccountId: null, shareSaju: null } });
   res.status(204).end();
 });
 
@@ -247,8 +248,8 @@ householdsRouter.post('/:householdId/persons/:personId/link', async (req, res) =
     return res.status(409).json({ error: `${person.name} 님은 이미 다른 계정과 연동되어 있어요.` });
   }
   await prisma.$transaction([
-    prisma.person.updateMany({ where: { householdId, linkedAccountId: me, NOT: { id: personId } }, data: { linkedAccountId: null } }),
-    prisma.person.update({ where: { id: personId }, data: { linkedAccountId: me } }),
+    prisma.person.updateMany({ where: { householdId, linkedAccountId: me, NOT: { id: personId } }, data: { linkedAccountId: null, shareSaju: null } }),
+    prisma.person.update({ where: { id: personId }, data: { linkedAccountId: me, ...(person.linkedAccountId === me ? {} : { shareSaju: null }) } }),
   ]);
   res.status(204).end();
 });
@@ -262,7 +263,19 @@ householdsRouter.delete('/:householdId/persons/:personId/link', async (req, res)
   const person = await prisma.person.findFirst({ where: { id: personId, householdId } });
   if (!person) return res.status(404).json({ error: '사람을 찾을 수 없어요.' });
   if (person.linkedAccountId !== me && role !== 'owner') return res.status(403).json({ error: '본인이나 가족 그룹을 만든 분만 연동을 풀 수 있어요.' });
-  await prisma.person.update({ where: { id: personId }, data: { linkedAccountId: null } });
+  await prisma.person.update({ where: { id: personId }, data: { linkedAccountId: null, shareSaju: null } });
+  res.status(204).end();
+});
+
+/** 내 사주를 가족과 함께 볼지: 그 사람과 연동된 본인만 정한다 */
+householdsRouter.patch('/:householdId/persons/:personId/share', async (req, res) => {
+  const { householdId, personId } = req.params;
+  const me = req.accountId!;
+  if (!(await roleOf(householdId, me))) return res.status(404).json({ error: '가족 그룹을 찾을 수 없어요.' });
+  const parsed = z.object({ share: z.boolean() }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: '선택을 확인해 주세요.' });
+  const updated = await prisma.person.updateMany({ where: { id: personId, householdId, linkedAccountId: me }, data: { shareSaju: parsed.data.share } });
+  if (updated.count === 0) return res.status(403).json({ error: '본인 사주만 공유 여부를 정할 수 있어요.' });
   res.status(204).end();
 });
 
@@ -359,4 +372,62 @@ householdsRouter.post('/:householdId/import', async (req, res) => {
     return { persons: toCreate.length, merged: srcPersons.length - toCreate.length, tickets };
   });
   res.json(result);
+});
+
+// ─── 가족 궁합 관계·사주 계산 설정(그룹이 함께 씀) ─────────────────
+
+const REL_VALUES = ['mother', 'father', 'parent', 'spouse', 'child', 'sibling', 'grandparent', 'grandchild', 'friend', 'other'] as const;
+
+householdsRouter.get('/:householdId/relations', async (req, res) => {
+  const { householdId } = req.params;
+  if (!(await roleOf(householdId, req.accountId!))) return res.status(404).json({ error: '가족 그룹을 찾을 수 없어요.' });
+  const list = await prisma.personRelation.findMany({ where: { householdId }, select: { fromPersonId: true, toPersonId: true, rel: true } });
+  res.json(list);
+});
+
+/** 관계 정하기(rel이 null이면 지우기). 같은 쌍의 반대 방향 기록은 지워서 한 줄만 남긴다 */
+householdsRouter.put('/:householdId/relations', async (req, res) => {
+  const { householdId } = req.params;
+  if (!(await roleOf(householdId, req.accountId!))) return res.status(404).json({ error: '가족 그룹을 찾을 수 없어요.' });
+  const parsed = z
+    .object({ fromPersonId: z.string().uuid(), toPersonId: z.string().uuid(), rel: z.enum(REL_VALUES).nullable() })
+    .safeParse(req.body);
+  if (!parsed.success || parsed.data.fromPersonId === parsed.data.toPersonId) return res.status(400).json({ error: '관계를 확인해 주세요.' });
+  const { fromPersonId, toPersonId, rel } = parsed.data;
+  const count = await prisma.person.count({ where: { householdId, id: { in: [fromPersonId, toPersonId] } } });
+  if (count !== 2) return res.status(404).json({ error: '사람을 찾을 수 없어요.' });
+  await prisma.$transaction(async (tx) => {
+    await tx.personRelation.deleteMany({ where: { fromPersonId: toPersonId, toPersonId: fromPersonId } });
+    if (rel) {
+      await tx.personRelation.upsert({
+        where: { fromPersonId_toPersonId: { fromPersonId, toPersonId } },
+        create: { householdId, fromPersonId, toPersonId, rel },
+        update: { rel },
+      });
+    } else {
+      await tx.personRelation.deleteMany({ where: { fromPersonId, toPersonId } });
+    }
+  });
+  res.status(204).end();
+});
+
+householdsRouter.get('/:householdId/settings', async (req, res) => {
+  const { householdId } = req.params;
+  if (!(await roleOf(householdId, req.accountId!))) return res.status(404).json({ error: '가족 그룹을 찾을 수 없어요.' });
+  const s = await prisma.householdSettings.upsert({ where: { householdId }, create: { householdId }, update: {} });
+  res.json({ trueSolarTime: s.trueSolarTime });
+});
+
+/** 사주 계산 기준은 그룹을 만든 사람만 바꾼다 */
+householdsRouter.patch('/:householdId/settings', async (req, res) => {
+  const { householdId } = req.params;
+  if ((await roleOf(householdId, req.accountId!)) !== 'owner') return res.status(403).json({ error: '가족 그룹을 만든 분만 바꿀 수 있어요.' });
+  const parsed = z.object({ trueSolarTime: z.boolean() }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: '설정을 확인해 주세요.' });
+  const s = await prisma.householdSettings.upsert({
+    where: { householdId },
+    create: { householdId, trueSolarTime: parsed.data.trueSolarTime },
+    update: { trueSolarTime: parsed.data.trueSolarTime },
+  });
+  res.json({ trueSolarTime: s.trueSolarTime });
 });
