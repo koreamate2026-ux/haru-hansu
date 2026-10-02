@@ -141,23 +141,7 @@ export function CompatBody() {
                     {dynamics.harmonyText}
                     {dynamics.connector ? ` 가족을 가장 잘 이어 주는 사람은 ${dynamics.connector.name} 님이에요.` : ''}
                   </Body>
-                  <ul className="dyn-list">
-                    {dynamics.bestFor.map((b) => (
-                      <li key={b.name}>
-                        <strong>{b.name}</strong> 님에게 가장 힘이 되는 사람은 <strong>{b.partner}</strong> 님 ({b.score}점)
-                      </li>
-                    ))}
-                  </ul>
-                  {dynamics.trios.map((t) => (
-                    <p key={t} className="dyn-note good">
-                      🤝 {t}
-                    </p>
-                  ))}
-                  {dynamics.careful.map((c) => (
-                    <p key={c.a + c.b} className="dyn-note">
-                      💬 {c.a}·{c.b} 님 ({c.score}점): {c.text}
-                    </p>
-                  ))}
+                  <p className="dyn-note good">✨ {dynamics.highlight}</p>
                 </div>
               </Section>
             ) : null}

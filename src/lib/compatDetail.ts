@@ -614,6 +614,8 @@ export interface FamilyDynamics {
   careful: { a: string; b: string; score: number; text: string }[];
   /** 띠(또는 일지)가 삼합을 이루는 세 사람 */
   trios: string[];
+  /** 가족에게 특히 좋은 점 하나(점수 없이) */
+  highlight: string;
 }
 
 export function familyDynamics(members: FamilyMember[], relOf: (baseId: string, otherId: string) => FamilyRel | null): FamilyDynamics | null {
@@ -664,5 +666,9 @@ export function familyDynamics(members: FamilyMember[], relOf: (baseId: string, 
     }
   }
 
-  return { harmony, harmonyText, connector, bestFor, careful, trios };
+  // 특히 좋은 점 하나: 삼합 트리오가 있으면 그것, 없으면 가장 잘 맞는 두 사람
+  const top = [...pairs].sort((x, y) => y.s - x.s)[0];
+  const highlight = trios[0] ?? `${top.a.name} 님과 ${top.b.name} 님은 서로에게 가장 큰 힘이 되는 사이예요. 두 사람이 함께하면 가족 분위기가 한결 밝아져요.`;
+
+  return { harmony, harmonyText, connector, bestFor, careful, trios, highlight };
 }
