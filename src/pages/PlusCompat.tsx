@@ -4,7 +4,7 @@ import { ElementBars } from '../components/ElementBars';
 import { BallRow } from '../components/LottoBall';
 import { PlusOnly, TodayNumberCard } from '../components/PlusDetail';
 import { Body, Button, Header, Screen, Section } from '../components/ui';
-import { REL_CHOICES, REL_INFO, analyzePair, familyNumbers, personalityOf, type FamilyRel, type NumberStory } from '../lib/compatDetail';
+import { REL_CHOICES, REL_INFO, analyzePair, familyDynamics, familyNumbers, familyPersonalities, type FamilyRel, type NumberStory } from '../lib/compatDetail';
 import { ELEMENT_INFO } from '../lib/elements';
 import { elementLabel } from '../lib/plusDetail';
 import { useRelations } from '../lib/relations';
@@ -103,6 +103,11 @@ export function CompatBody() {
   );
 
   const family = useMemo(() => (members.length >= 2 ? familyNumbers(members.map((m) => ({ id: m.p.id, chart: m.chart }))) : null), [members]);
+  const traits = useMemo(() => familyPersonalities(members.map((m) => ({ id: m.p.id, chart: m.chart }))), [members]);
+  const dynamics = useMemo(
+    () => familyDynamics(members.map((m) => ({ id: m.p.id, name: m.p.name, chart: m.chart, gender: m.p.gender ?? null })), relations.get),
+    [members, relations.get],
+  );
   const base = members.find((m) => m.p.id === baseId) ?? members[0];
   // 함께 볼 사람이 모자라면 들어오자마자 시작 팝업을 띄운다
   const [wizard, setWizard] = useState(() => members.length < 2);
@@ -121,6 +126,41 @@ export function CompatBody() {
         ) : (
           <>
             {cat && !cat.empty ? <TodayNumberCard category={cat} /> : null}
+
+            {dynamics ? (
+              <Section title="가족 관계 한눈에">
+                <div className="pair-card">
+                  <span className="dim small">우리 가족 화목 점수</span>
+                  <div className="score-row" style={{ marginTop: 4 }}>
+                    <div className="score-bar" aria-hidden>
+                      <span style={{ width: `${dynamics.harmony}%` }} />
+                    </div>
+                    <span className="score-num">{dynamics.harmony}점</span>
+                  </div>
+                  <Body small style={{ margin: '6px 0 0' }}>
+                    {dynamics.harmonyText}
+                    {dynamics.connector ? ` 가족을 가장 잘 이어 주는 사람은 ${dynamics.connector.name} 님이에요.` : ''}
+                  </Body>
+                  <ul className="dyn-list">
+                    {dynamics.bestFor.map((b) => (
+                      <li key={b.name}>
+                        <strong>{b.name}</strong> 님에게 가장 힘이 되는 사람은 <strong>{b.partner}</strong> 님 ({b.score}점)
+                      </li>
+                    ))}
+                  </ul>
+                  {dynamics.trios.map((t) => (
+                    <p key={t} className="dyn-note good">
+                      🤝 {t}
+                    </p>
+                  ))}
+                  {dynamics.careful.map((c) => (
+                    <p key={c.a + c.b} className="dyn-note">
+                      💬 {c.a}·{c.b} 님 ({c.score}점): {c.text}
+                    </p>
+                  ))}
+                </div>
+              </Section>
+            ) : null}
 
             <Section title="두 사람씩 보기">
               <div className="chips" style={{ marginBottom: 12 }}>
@@ -148,7 +188,7 @@ export function CompatBody() {
             <Section title="한 사람씩 성향">
               <div className="stack" style={{ gap: 10 }}>
                 {members.map(({ p, chart }) => {
-                  const t = personalityOf(chart);
+                  const t = traits[p.id];
                   const rel = p.id === base.p.id ? null : relations.get(base.p.id, p.id);
                   return (
                     <div key={p.id} className="trait-card">
@@ -174,7 +214,7 @@ export function CompatBody() {
                         {t.summary}
                       </Body>
                       <Body dim small style={{ margin: '4px 0 0' }}>
-                        가족 안에서는 <strong>{t.familyRole}</strong>. {t.caution}
+                        가족 안에서는 <strong>{t.familyRole}</strong>. {t.caution} {t.growTip}
                       </Body>
                     </div>
                   );
@@ -204,7 +244,12 @@ export function CompatBody() {
 
 function PairCard({ base, other, rel, onRel }: { base: Member; other: Member; rel: FamilyRel | null; onRel: (r: FamilyRel | null) => void }) {
   const a = useMemo(
-    () => analyzePair({ id: base.p.id, name: base.p.name, chart: base.chart }, { id: other.p.id, name: other.p.name, chart: other.chart }, rel),
+    () =>
+      analyzePair(
+        { id: base.p.id, name: base.p.name, chart: base.chart, gender: base.p.gender ?? null },
+        { id: other.p.id, name: other.p.name, chart: other.chart, gender: other.p.gender ?? null },
+        rel,
+      ),
     [base, other, rel],
   );
   const [open, setOpen] = useState(false);
@@ -253,6 +298,10 @@ function PairCard({ base, other, rel, onRel }: { base: Member; other: Member; re
       <Body dim small style={{ margin: '6px 0 0' }}>
         {a.zodiac.label} · {a.zodiac.text}
       </Body>
+      <p className="dyn-note" style={{ marginTop: 10 }}>
+        💬 {a.conflictText}
+      </p>
+      <p className="dyn-note good">🌱 {a.activity}</p>
 
       <div style={{ marginTop: 12 }}>
         <NumberPair good={a.goodNumbers} avoid={a.avoidNumbers} />

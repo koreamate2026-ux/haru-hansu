@@ -1,4 +1,4 @@
-import { CONTROLS, ELEMENTS, ELEMENT_INFO, GENERATES, STEMS, controllerOf, numberElement, numbersOf } from './elements';
+import { CONTROLS, ELEMENTS, ELEMENT_INFO, GENERATES, STEMS, controllerOf, motherOf, numberElement, numbersOf } from './elements';
 import { hashString, seededRandom } from './random';
 import type { SajuChart } from './saju';
 import { relationOf } from './sajuDetail';
@@ -41,30 +41,60 @@ interface StemTrait {
   image: string;
   emoji: string;
   keywords: [string, string, string];
-  strength: string;
+  /** 같은 일간이 가족 안에 둘 이상이면 두 번째 사람은 다른 문장으로 */
+  strength: [string, string];
   caution: string;
 }
 
 const STEM_TRAITS: Record<string, StemTrait> = {
-  甲: { image: '큰 나무', emoji: '🌳', keywords: ['곧음', '앞장섬', '책임감'], strength: '한번 정하면 꿋꿋하게 밀고 나가는 힘이 있어요.', caution: '고집이 세 보일 수 있으니 한 번쯤 물러서 주면 좋아요.' },
-  乙: { image: '풀과 덩굴', emoji: '🌿', keywords: ['부드러움', '적응력', '끈기'], strength: '어떤 자리에서도 잘 어울리고 끝까지 버티는 끈기가 있어요.', caution: '속마음을 감추기 쉬우니 서운한 건 말로 꺼내 주세요.' },
-  丙: { image: '태양', emoji: '☀️', keywords: ['밝음', '솔직함', '열정'], strength: '주변을 환하게 만들고 숨김없이 솔직해요.', caution: '마음이 앞서 서두르기 쉬우니 한 박자 쉬어 가요.' },
-  丁: { image: '촛불', emoji: '🕯️', keywords: ['섬세함', '따뜻함', '집중'], strength: '가까운 사람을 세심하게 챙기고 한 가지에 깊이 몰두해요.', caution: '작은 말에도 마음이 쓰이니 스스로를 다독여 주세요.' },
-  戊: { image: '큰 산', emoji: '⛰️', keywords: ['듬직함', '포용', '여유'], strength: '흔들리지 않고 사람들을 넉넉하게 품어 줘요.', caution: '느긋함이 무심함으로 보일 수 있으니 관심을 표현해 주세요.' },
-  己: { image: '논밭', emoji: '🌾', keywords: ['꼼꼼함', '실속', '배려'], strength: '살림과 실속을 잘 챙기고 남을 먼저 배려해요.', caution: '걱정이 많아질 때는 혼자 끌어안지 말고 나눠 주세요.' },
-  庚: { image: '바위와 쇠', emoji: '🪨', keywords: ['결단', '의리', '직설'], strength: '맺고 끊음이 분명하고 내 사람은 끝까지 지켜요.', caution: '말이 직설적이라 부드럽게 한 번 감싸 주면 좋아요.' },
-  辛: { image: '보석', emoji: '💎', keywords: ['깔끔함', '안목', '자존심'], strength: '보는 눈이 높고 무엇이든 정갈하게 다듬어요.', caution: '자존심이 다치기 쉬우니 칭찬을 아끼지 마세요.' },
-  壬: { image: '큰 강', emoji: '🌊', keywords: ['넓은 품', '자유로움', '지혜'], strength: '생각의 폭이 넓고 큰 그림을 잘 그려요.', caution: '얽매이기 싫어하니 서로의 시간을 존중해 주세요.' },
-  癸: { image: '이슬비', emoji: '🌧️', keywords: ['조용함', '직관', '공감'], strength: '말없이 스며들어 상대의 마음을 잘 알아채요.', caution: '속으로 삭이는 편이라 먼저 물어봐 주면 좋아요.' },
+  甲: { image: '큰 나무', emoji: '🌳', keywords: ['곧음', '앞장섬', '책임감'], strength: ['한번 정하면 꿋꿋하게 밀고 나가는 힘이 있어요.', '위로 쭉 뻗어 가듯 목표를 세우면 흔들리지 않아요.'], caution: '고집이 세 보일 수 있으니 한 번쯤 물러서 주면 좋아요.' },
+  乙: { image: '풀과 덩굴', emoji: '🌿', keywords: ['부드러움', '적응력', '끈기'], strength: ['어떤 자리에서도 잘 어울리고 끝까지 버티는 끈기가 있어요.', '바람에 휘어도 꺾이지 않듯 유연하게 길을 찾아요.'], caution: '속마음을 감추기 쉬우니 서운한 건 말로 꺼내 주세요.' },
+  丙: { image: '태양', emoji: '☀️', keywords: ['밝음', '솔직함', '열정'], strength: ['주변을 환하게 만들고 숨김없이 솔직해요.', '어디서든 먼저 웃고 먼저 다가가는 따뜻함이 있어요.'], caution: '마음이 앞서 서두르기 쉬우니 한 박자 쉬어 가요.' },
+  丁: { image: '촛불', emoji: '🕯️', keywords: ['섬세함', '따뜻함', '집중'], strength: ['가까운 사람을 세심하게 챙기고 한 가지에 깊이 몰두해요.', '작은 불빛처럼 곁에 있는 사람을 은은하게 비춰 줘요.'], caution: '작은 말에도 마음이 쓰이니 스스로를 다독여 주세요.' },
+  戊: { image: '큰 산', emoji: '⛰️', keywords: ['듬직함', '포용', '여유'], strength: ['흔들리지 않고 사람들을 넉넉하게 품어 줘요.', '한자리를 묵묵히 지키며 기댈 언덕이 돼 줘요.'], caution: '느긋함이 무심함으로 보일 수 있으니 관심을 표현해 주세요.' },
+  己: { image: '논밭', emoji: '🌾', keywords: ['꼼꼼함', '실속', '배려'], strength: ['살림과 실속을 잘 챙기고 남을 먼저 배려해요.', '씨앗을 키우듯 사람과 일을 차근차근 길러 내요.'], caution: '걱정이 많아질 때는 혼자 끌어안지 말고 나눠 주세요.' },
+  庚: { image: '바위와 쇠', emoji: '🪨', keywords: ['결단', '의리', '직설'], strength: ['맺고 끊음이 분명하고 내 사람은 끝까지 지켜요.', '어려운 일 앞에서 오히려 단단해지는 사람이에요.'], caution: '말이 직설적이라 부드럽게 한 번 감싸 주면 좋아요.' },
+  辛: { image: '보석', emoji: '💎', keywords: ['깔끔함', '안목', '자존심'], strength: ['보는 눈이 높고 무엇이든 정갈하게 다듬어요.', '갈고닦을수록 빛나는 보석처럼 꾸준히 자신을 가꿔요.'], caution: '자존심이 다치기 쉬우니 칭찬을 아끼지 마세요.' },
+  壬: { image: '큰 강', emoji: '🌊', keywords: ['넓은 품', '자유로움', '지혜'], strength: ['생각의 폭이 넓고 큰 그림을 잘 그려요.', '막히면 돌아가는 강물처럼 어떤 상황에서도 길을 찾아요.'], caution: '얽매이기 싫어하니 서로의 시간을 존중해 주세요.' },
+  癸: { image: '이슬비', emoji: '🌧️', keywords: ['조용함', '직관', '공감'], strength: ['말없이 스며들어 상대의 마음을 잘 알아채요.', '조용히 내리는 비처럼 곁에서 꾸준히 힘이 돼 줘요.'], caution: '속으로 삭이는 편이라 먼저 물어봐 주면 좋아요.' },
 };
 
-/** 가족 안에서 맡기 쉬운 역할(일간 오행 기준) */
-const FAMILY_ROLE: Record<Element, string> = {
-  wood: '새 일을 먼저 시작하는 개척자',
-  fire: '집안 분위기를 띄우는 분위기 메이커',
+/** 나를 뺀 나머지 기운 중 가장 많은 무리(십성)로 보는 성향 */
+type Group = 'same' | 'output' | 'wealth' | 'power' | 'resource';
+
+const GROUP_TRAIT: Record<Group, { keywords: [string, string]; text: string; caution: string; role: string; lackTip: string }> = {
+  same: { keywords: ['주관', '독립심'], text: '내 뜻대로 해 보고 싶은 마음이 커서 스스로 결정하는 걸 좋아해요.', caution: '혼자 다 짊어지려 하지 말고 도움을 청해도 괜찮아요.', role: '앞장서 끌고 가는 리더', lackTip: '가끔은 내 생각을 분명하게 말해 보세요.' },
+  output: { keywords: ['표현력', '재주'], text: '생각을 말과 손으로 풀어내는 재주가 있어 주변을 즐겁게 해요.', caution: '말이 앞설 때는 한 번 더 들어 주면 좋아요.', role: '분위기를 띄우는 분위기 메이커', lackTip: '마음을 말로 표현하는 연습이 관계를 부드럽게 해요.' },
+  wealth: { keywords: ['현실 감각', '살림꾼'], text: '실속을 잘 따지고 생활을 알뜰하게 꾸려요.', caution: '계산이 앞서 보이지 않게 마음도 함께 표현해 주세요.', role: '살림과 계획을 챙기는 살림꾼', lackTip: '작은 계획부터 함께 세워 보면 좋아요.' },
+  power: { keywords: ['원칙', '믿음직함'], text: '약속과 규칙을 잘 지켜서 믿고 맡기기 좋은 사람이에요.', caution: '스스로에게 너무 엄격하지 않게 쉬는 시간도 챙기세요.', role: '약속을 지키는 든든한 기둥', lackTip: '생활의 작은 규칙을 정해 두면 마음이 편해요.' },
+  resource: { keywords: ['배움', '깊은 생각'], text: '배우고 생각하기를 좋아해서 조언을 잘 해 줘요.', caution: '생각이 길어질 땐 일단 해 보는 것도 좋아요.', role: '이야기를 들어 주는 조언자', lackTip: '모르는 건 가족에게 물어보면 오히려 가까워져요.' },
+};
+
+/** 태어난 계절(월지) */
+type Season = 'spring' | 'summer' | 'autumn' | 'winter';
+const SEASON_OF: Record<string, Season> = { 寅: 'spring', 卯: 'spring', 辰: 'spring', 巳: 'summer', 午: 'summer', 未: 'summer', 申: 'autumn', 酉: 'autumn', 戌: 'autumn', 亥: 'winter', 子: 'winter', 丑: 'winter' };
+const SEASON_TRAIT: Record<Season, { keyword: string; text: string; role: string }> = {
+  spring: { keyword: '시작하는 힘', text: '봄에 태어나 새로운 일을 시작하는 데 망설임이 적어요.', role: '새 일을 먼저 시작하는 개척자' },
+  summer: { keyword: '활기', text: '여름에 태어나 에너지가 밝고 사람들 사이에서 활기를 줘요.', role: '웃음을 주는 에너자이저' },
+  autumn: { keyword: '마무리', text: '가을에 태어나 일을 정리하고 끝맺는 힘이 좋아요.', role: '정리하고 결정하는 해결사' },
+  winter: { keyword: '속 깊음', text: '겨울에 태어나 겉보다 속이 깊고 생각을 오래 품어요.', role: '마음을 읽어 주는 공감 담당' },
+};
+
+/** 일지(배우자·가까운 사람 자리)의 기운이 나에게 어떤지 */
+const DAY_BRANCH_TEXT: Record<Group, string> = {
+  same: '가까운 사람과는 친구처럼 대등하게 지내는 걸 좋아해요.',
+  output: '가까운 사람에게는 아낌없이 챙겨 주는 편이에요.',
+  wealth: '가까운 사람과 함께 무언가를 이뤄 가는 데서 기쁨을 느껴요.',
+  power: '가까운 사람에게는 책임감을 크게 느끼는 편이에요.',
+  resource: '가까운 사람에게 기대고 위로받을 때 힘이 나요.',
+};
+
+const ELEMENT_ROLE: Record<Element, string> = {
+  wood: '함께 성장하자고 북돋는 응원단장',
+  fire: '집안을 밝히는 햇살',
   earth: '가운데서 중심을 잡는 버팀목',
-  metal: '정리하고 결정을 내리는 해결사',
-  water: '이야기를 들어 주는 조언자',
+  metal: '원칙을 지키는 정리 담당',
+  water: '부드럽게 흐름을 잇는 연결고리',
 };
 
 export interface Personality {
@@ -75,33 +105,99 @@ export interface Personality {
   summary: string;
   caution: string;
   familyRole: string;
+  /** 부족한 쪽을 채우는 한마디 */
+  growTip: string;
 }
 
-export function personalityOf(chart: SajuChart): Personality {
-  const stem = chart.dayMaster.hanja;
-  const t = STEM_TRAITS[stem];
-  const power =
-    chart.strength === 'strong' ? '자기 생각이 뚜렷해 스스로 길을 만드는 편이에요.' : chart.strength === 'weak' ? '사람들과 함께할 때 더 큰 힘이 나는 편이에요.' : '기운이 고르게 놓여 어디서나 균형을 잘 잡아요.';
-  const over = chart.excessive[0];
-  const overText = over ? ` ${ELEMENT_INFO[over].name} 기운이 넉넉해서 ${OVER_TEXT[over]}` : '';
+function groupCounts(chart: SajuChart): Record<Group, number> {
+  const self = chart.dayMaster.element;
+  const c = chart.counts;
   return {
-    image: t.image,
-    emoji: t.emoji,
-    stem: `${STEMS[stem].ko}${ELEMENT_INFO[chart.dayMaster.element].ko}(${stem})`,
-    keywords: [...t.keywords],
-    summary: `${t.image}처럼 ${t.strength} ${power}${overText}`,
-    caution: t.caution,
-    familyRole: FAMILY_ROLE[chart.dayMaster.element],
+    same: Math.max(0, c[self] - 1),
+    output: c[GENERATES[self]],
+    wealth: c[CONTROLS[self]],
+    power: c[controllerOf(self)],
+    resource: c[motherOf(self)],
   };
 }
 
-const OVER_TEXT: Record<Element, string> = {
-  wood: '하고 싶은 일이 많아요.',
-  fire: '표현이 풍부해요.',
-  earth: '믿음직하지만 변화에는 신중해요.',
-  metal: '원칙을 중요하게 여겨요.',
-  water: '생각이 많고 깊어요.',
-};
+interface TraitParts {
+  t: StemTrait;
+  dominant: Group;
+  weakest: Group;
+  season: Season;
+  dayGroup: Group;
+}
+
+function partsOf(chart: SajuChart): TraitParts {
+  const g = groupCounts(chart);
+  const groups = Object.keys(g) as Group[];
+  const dominant = groups.reduce((a, b) => (g[b] > g[a] ? b : a));
+  const weakest = groups.reduce((a, b) => (g[b] < g[a] ? b : a));
+  const dayGroup = relationOf(chart.dayMaster.element, chart.pillars.day.branchElement) as Group;
+  return { t: STEM_TRAITS[chart.dayMaster.hanja], dominant, weakest, season: SEASON_OF[chart.pillars.month.branch], dayGroup };
+}
+
+function build(chart: SajuChart, parts: TraitParts, variant: number, keywords: string[], familyRole: string): Personality {
+  const { t, dominant, weakest, season, dayGroup } = parts;
+  const power = chart.strength === 'strong' ? '스스로 길을 만드는 힘이 강한 편이에요.' : chart.strength === 'weak' ? '사람들과 함께할 때 더 큰 힘이 나요.' : '';
+  const sentences = [`${t.image}처럼 ${t.strength[variant % 2]}`, GROUP_TRAIT[dominant].text, SEASON_TRAIT[season].text, DAY_BRANCH_TEXT[dayGroup], power].filter(Boolean);
+  return {
+    image: t.image,
+    emoji: t.emoji,
+    stem: `${STEMS[chart.dayMaster.hanja].ko}${ELEMENT_INFO[chart.dayMaster.element].ko}(${chart.dayMaster.hanja})`,
+    keywords,
+    summary: sentences.join(' '),
+    caution: variant % 2 ? GROUP_TRAIT[dominant].caution : t.caution,
+    familyRole,
+    growTip: weakest !== dominant ? GROUP_TRAIT[weakest].lackTip : '',
+  };
+}
+
+/** 한 사람만 볼 때 */
+export function personalityOf(chart: SajuChart): Personality {
+  const parts = partsOf(chart);
+  const kw = [parts.t.keywords[0], GROUP_TRAIT[parts.dominant].keywords[0], SEASON_TRAIT[parts.season].keyword];
+  return build(chart, parts, 0, kw, GROUP_TRAIT[parts.dominant].role);
+}
+
+/**
+ * 가족 모두를 한꺼번에: 같은 일간이어도 문장·키워드·역할이 겹치지 않게 고른다.
+ * 키워드는 일간·많은 기운·계절·일지에서 후보를 모아 앞사람이 쓴 건 피하고, 역할도 한 사람씩 다르게 나눈다.
+ */
+export function familyPersonalities(members: { id: string; chart: SajuChart }[]): Record<string, Personality> {
+  const usedKw = new Set<string>();
+  const usedRole = new Set<string>();
+  const stemSeen: Record<string, number> = {};
+  const out: Record<string, Personality> = {};
+  for (const m of members) {
+    const parts = partsOf(m.chart);
+    const variant = stemSeen[m.chart.dayMaster.hanja] ?? 0;
+    stemSeen[m.chart.dayMaster.hanja] = variant + 1;
+
+    const g = GROUP_TRAIT[parts.dominant];
+    const pool = [
+      parts.t.keywords[variant % 3],
+      g.keywords[0],
+      SEASON_TRAIT[parts.season].keyword,
+      parts.t.keywords[(variant + 1) % 3],
+      g.keywords[1],
+      GROUP_TRAIT[parts.dayGroup].keywords[1],
+      parts.t.keywords[(variant + 2) % 3],
+    ];
+    const kw: string[] = [];
+    for (const k of pool) if (kw.length < 3 && !kw.includes(k) && !usedKw.has(k)) kw.push(k);
+    for (const k of pool) if (kw.length < 3 && !kw.includes(k)) kw.push(k);
+    kw.forEach((k) => usedKw.add(k));
+
+    const roles = [g.role, SEASON_TRAIT[parts.season].role, ELEMENT_ROLE[m.chart.dayMaster.element], GROUP_TRAIT[parts.dayGroup].role];
+    const role = roles.find((r) => !usedRole.has(r)) ?? roles[0];
+    usedRole.add(role);
+
+    out[m.id] = build(m.chart, parts, variant, kw, role);
+  }
+  return out;
+}
 
 // ─── 두 사람 ───────────────────────────────────────────
 
@@ -114,6 +210,28 @@ const CHUNG = ['子午', '丑未', '寅申', '卯酉', '辰戌', '巳亥'];
 const WONJIN = ['子未', '丑午', '寅酉', '卯申', '辰亥', '巳戌'];
 
 const pairIn = (list: string[], a: string, b: string) => a !== b && list.some((p) => p.includes(a) && p.includes(b));
+/** 형: 서로 다그치기 쉬운 짝(자기 자신끼리 형인 辰午酉亥 포함) */
+const HYUNG = ['寅巳', '巳申', '寅申', '丑戌', '戌未', '丑未', '子卯'];
+const SELF_HYUNG = ['辰', '午', '酉', '亥'];
+const isHyung = (a: string, b: string) => (a === b ? SELF_HYUNG.includes(a) : pairIn(HYUNG, a, b));
+/** 해: 사소한 일로 마음이 상하기 쉬운 짝 */
+const HAE = ['子未', '丑午', '寅巳', '卯辰', '申亥', '酉戌'];
+
+/** 다섯 기운이 얼마나 고르게 놓였는지(작을수록 고름) */
+function unevenness(c: Record<Element, number>) {
+  const vals = ELEMENTS.map((e) => c[e]);
+  const mean = vals.reduce((x, y) => x + y, 0) / 5;
+  return Math.sqrt(vals.reduce((s2, v) => s2 + (v - mean) ** 2, 0) / 5) / (mean || 1);
+}
+
+/** 함께하면 좋은 활동(둘에게 필요한 기운 × 사이) */
+const ACTIVITY: Record<Element, Record<Role, string>> = {
+  wood: { elder: '함께 동네 산책을 하며 옛이야기를 들어 보세요.', younger: '화분이나 작은 텃밭을 같이 키워 보세요.', partner: '숲길이나 공원을 걸으며 앞으로의 계획을 이야기해 보세요.', peer: '새로운 취미를 같이 시작해 보세요.' },
+  fire: { elder: '사진을 함께 찍거나 옛날 앨범을 같이 넘겨 보세요.', younger: '같이 노래하거나 춤추며 크게 웃어 보세요.', partner: '공연이나 영화를 보고 맛있는 저녁을 먹어 보세요.', peer: '함께 웃을 수 있는 모임이나 여행을 계획해 보세요.' },
+  earth: { elder: '좋아하시는 음식을 같이 만들어 드셔 보세요.', younger: '집안일 하나를 함께 맡아 끝내 보세요.', partner: '집밥을 같이 해 먹고 집을 함께 정리해 보세요.', peer: '맛집에 가서 천천히 밥 한 끼 해 보세요.' },
+  metal: { elder: '가벼운 운동이나 건강 검진을 함께 챙겨 보세요.', younger: '자전거나 운동을 같이 배우며 약속을 지켜 보세요.', partner: '다음 달 계획과 가계부를 같이 정리해 보세요.', peer: '함께 운동하며 목표를 하나 정해 보세요.' },
+  water: { elder: '전화나 차 한잔으로 안부를 자주 나눠 보세요.', younger: '자기 전에 오늘 있었던 일을 서로 이야기해 보세요.', partner: '물가나 온천에 가서 천천히 이야기를 나눠 보세요.', peer: '조용한 카페에서 속 이야기를 나눠 보세요.' },
+};
 
 /** 기운이 흐르는 방향: 기준 사람(a)이 상대(b)에게 */
 type Flow = 'same' | 'give' | 'receive' | 'lead' | 'checked';
@@ -224,6 +342,10 @@ export interface PairAnalysis {
   goodElements: Element[];
   avoidElements: Element[];
   numberReason: string;
+  /** 부딪치기 쉬운 순간과 풀어 가는 방법 */
+  conflictText: string;
+  /** 함께하면 좋은 활동 */
+  activity: string;
   /** 숫자마다 왜 좋고 왜 피하는지 */
   stories: NumberStory[];
   /** 두 사람의 생일로 만든 숫자 */
@@ -268,8 +390,8 @@ function pickFrom(elements: Element[], count: number, rand: () => number, exclud
 }
 
 export function analyzePair(
-  base: { id: string; name: string; chart: SajuChart },
-  other: { id: string; name: string; chart: SajuChart },
+  base: { id: string; name: string; chart: SajuChart; gender?: 'M' | 'F' | null },
+  other: { id: string; name: string; chart: SajuChart; gender?: 'M' | 'F' | null },
   rel: FamilyRel | null,
 ): PairAnalysis {
   const a = base.chart;
@@ -293,13 +415,43 @@ export function analyzePair(
   if (b.counts[a.usefulElement] >= 2) points.push({ label: `${other.name} 님이 ${base.name} 님에게 필요한 기운을 가졌어요`, value: 8 });
   if (a.counts[b.usefulElement] >= 2) points.push({ label: `${base.name} 님이 ${other.name} 님에게 필요한 기운을 가졌어요`, value: 8 });
 
-  // 5) 배우자는 일지(태어난 날의 지지, 배우자 자리)의 합·충을 본다
-  if (rel && REL_INFO[rel].role === 'partner') {
+  // 5) 일지(태어난 날의 지지): 가까운 사이의 생활 궁합. 배우자는 배우자 자리라 더 크게 본다
+  const role = rel ? REL_INFO[rel].role : null;
+  const partner = role === 'partner';
+  {
     const x = a.pillars.day.branch;
     const y = b.pillars.day.branch;
-    if (pairIn(YUKHAP, x, y)) points.push({ label: '배우자 자리(일지)가 합', value: 10 });
-    else if (pairIn(CHUNG, x, y)) points.push({ label: '배우자 자리(일지)가 충', value: -8 });
+    const w = partner ? 1 : 0.6;
+    const where = partner ? '배우자 자리(일지)' : '생활 자리(일지)';
+    if (pairIn(YUKHAP, x, y)) points.push({ label: `${where}가 합 · 함께 지내기 편해요`, value: Math.round(10 * w) });
+    else if (pairIn(CHUNG, x, y)) points.push({ label: `${where}가 충 · 생활 방식이 달라요`, value: -Math.round(8 * w) });
+    else if (isHyung(x, y)) points.push({ label: `${where}가 형 · 서로 다그치기 쉬워요`, value: -Math.round(6 * w) });
+    else if (pairIn(HAE, x, y)) points.push({ label: `${where}가 해 · 작은 일에 서운하기 쉬워요`, value: -Math.round(5 * w) });
   }
+
+  // 6) 전통 궁합의 배우자 기운: 남자에게는 내가 거두는 기운(재성), 여자에게는 나를 다듬는 기운(관성)
+  if (partner && base.gender) {
+    const want = base.gender === 'M' ? 'wealth' : 'power';
+    if (r === want) points.push({ label: '서로를 배우자 기운으로 가진 사이', value: 8 });
+  }
+
+  // 7) 윗사람·아랫사람: 윗사람의 기운이 아랫사람을 길러 주면(생해 주면) 자연스러운 보살핌
+  if ((role === 'elder' && r === 'resource') || (role === 'younger' && r === 'output')) {
+    points.push({ label: '윗사람의 기운이 아랫사람을 길러 주는 사이', value: 6 });
+  } else if ((role === 'elder' && r === 'wealth') || (role === 'younger' && r === 'power')) {
+    points.push({ label: '아랫사람 기운이 윗사람을 누르는 모양 · 존중이 필요해요', value: -4 });
+  }
+
+  // 8) 조후(계절의 온도): 추운 계절과 더운 계절에 태어난 둘은 서로 온도를 맞춰 준다
+  const sa = SEASON_OF[a.pillars.month.branch];
+  const sb = SEASON_OF[b.pillars.month.branch];
+  if ((sa === 'winter' && sb === 'summer') || (sa === 'summer' && sb === 'winter')) points.push({ label: '겨울생과 여름생 · 서로 온도를 맞춰 줘요', value: 6 });
+  else if (sa === sb && (sa === 'winter' || sa === 'summer')) points.push({ label: `둘 다 ${sa === 'winter' ? '겨울' : '여름'}생 · 같은 쪽으로 쏠리기 쉬워요`, value: -2 });
+
+  // 9) 함께하면 기운이 더 고르게 되는지
+  const both: Record<Element, number> = { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
+  for (const e of ELEMENTS) both[e] = a.counts[e] + b.counts[e];
+  if (unevenness(both) < Math.min(unevenness(a.counts), unevenness(b.counts)) - 0.1) points.push({ label: '함께 있으면 다섯 기운이 더 고르게 돼요', value: 6 });
 
   const raw = 50 + points.reduce((s, p) => s + p.value, 0);
   const score = Math.max(40, Math.min(98, raw));
@@ -378,10 +530,27 @@ export function analyzePair(
     stories.push({ numbers: [n], kind: 'date', element: e, text: `${text} ${elName(e)} 기운이에요.${tone}` });
   }
 
+  const yb = [a.pillars.year.branch, b.pillars.year.branch];
+  const db2 = [a.pillars.day.branch, b.pillars.day.branch];
+  const conflictText = pairIn(CHUNG, db2[0], db2[1]) || pairIn(CHUNG, yb[0], yb[1])
+    ? '생활 리듬이나 우선순위가 정반대일 때 부딪치기 쉬워요. 각자의 방식을 인정하는 규칙을 하나 정해 두세요.'
+    : isHyung(db2[0], db2[1])
+      ? '걱정하는 마음이 잔소리로 들릴 때가 있어요. 조언보다 "괜찮아?" 한마디가 먼저예요.'
+      : pairIn(WONJIN, yb[0], yb[1]) || pairIn(HAE, db2[0], db2[1])
+        ? '작은 말 한마디에 서운해지기 쉬워요. 오해는 그날 바로 풀어 주세요.'
+        : flow === 'checked' || flow === 'lead'
+          ? '한 사람이 결정을 도맡으면 다른 사람이 답답해질 수 있어요. 중요한 일은 같이 정해요.'
+          : flow === 'same'
+            ? '닮은 만큼 둘 다 고집을 부릴 때가 있어요. 번갈아 양보하는 순서를 정해 보세요.'
+            : '크게 부딪칠 일은 적은 사이예요. 고마움을 말로 자주 전하면 더 좋아져요.';
+
   return {
     score,
     grade,
     points,
+    conflictText,
+    // 사이마다 다르게: 이어 주는 기운이 있으면 그것, 없으면 두 사람에 따라 좋은 기운 중 하나
+    activity: ACTIVITY[bridge ?? goodTop[hashString([base.id, other.id].sort().join('|') + '|act') % goodTop.length]][role ?? 'peer'],
     flowText: FLOW_TEXT[flow](base.name, other.name),
     roleTip,
     styleText,
@@ -422,4 +591,78 @@ export function familyNumbers(members: { id: string; chart: SajuChart }[]) {
     ),
   ];
   return { combined, good, avoid, goodNumbers, avoidNumbers, stories };
+}
+
+// ─── 가족 관계 한눈에 ────────────────────────────────────
+
+export interface FamilyMember {
+  id: string;
+  name: string;
+  chart: SajuChart;
+  gender?: 'M' | 'F' | null;
+}
+
+export interface FamilyDynamics {
+  /** 가족 모든 짝의 궁합 평균 */
+  harmony: number;
+  harmonyText: string;
+  /** 가족을 가장 잘 이어 주는 사람 */
+  connector: { name: string; avg: number } | null;
+  /** 사람마다 가장 힘이 되는 상대 */
+  bestFor: { name: string; partner: string; score: number }[];
+  /** 마음을 더 써야 할 짝 */
+  careful: { a: string; b: string; score: number; text: string }[];
+  /** 띠(또는 일지)가 삼합을 이루는 세 사람 */
+  trios: string[];
+}
+
+export function familyDynamics(members: FamilyMember[], relOf: (baseId: string, otherId: string) => FamilyRel | null): FamilyDynamics | null {
+  if (members.length < 2) return null;
+  const score: Record<string, number> = {};
+  const key = (x: string, y: string) => [x, y].sort().join('|');
+  const pairs: { a: FamilyMember; b: FamilyMember; s: number; conflict: string }[] = [];
+  for (let i = 0; i < members.length; i++)
+    for (let j = i + 1; j < members.length; j++) {
+      const a = members[i];
+      const b = members[j];
+      const res = analyzePair(a, b, relOf(a.id, b.id));
+      score[key(a.id, b.id)] = res.score;
+      pairs.push({ a, b, s: res.score, conflict: res.conflictText });
+    }
+
+  const harmony = Math.round(pairs.reduce((s, p) => s + p.s, 0) / pairs.length);
+  const harmonyText =
+    harmony >= 85 ? '서로 힘이 되어 주는 화목한 가족이에요.' : harmony >= 72 ? '대체로 손발이 잘 맞는 가족이에요.' : harmony >= 60 ? '편안하지만 표현이 조금 더 필요한 가족이에요.' : '서로 다른 점이 많아 배울 것도 많은 가족이에요.';
+
+  const avgOf = (m: FamilyMember) => {
+    const others = members.filter((o) => o.id !== m.id);
+    return others.reduce((s, o) => s + score[key(m.id, o.id)], 0) / others.length;
+  };
+  const connector = members.length >= 3 ? members.map((m) => ({ name: m.name, avg: Math.round(avgOf(m)) })).sort((x, y) => y.avg - x.avg)[0] : null;
+
+  const bestFor = members.map((m) => {
+    const best = members.filter((o) => o.id !== m.id).sort((x, y) => score[key(m.id, y.id)] - score[key(m.id, x.id)])[0];
+    return { name: m.name, partner: best.name, score: score[key(m.id, best.id)] };
+  });
+
+  const careful = pairs
+    .filter((p) => p.s < 66)
+    .sort((x, y) => x.s - y.s)
+    .slice(0, 2)
+    .map((p) => ({ a: p.a.name, b: p.b.name, score: p.s, text: p.conflict }));
+
+  const trios: string[] = [];
+  if (members.length >= 3) {
+    for (const group of SAMHAP) {
+      for (const which of ['year', 'day'] as const) {
+        const hit = group.split('').map((br) => members.find((m) => m.chart.pillars[which].branch === br));
+        if (hit.every(Boolean)) {
+          const names = hit.map((m) => m!.name).join('·');
+          trios.push(which === 'year' ? `${names} 님은 띠가 삼합을 이루는 한 팀이에요. 셋이 함께하면 일이 술술 풀려요.` : `${names} 님은 생활 자리(일지)가 삼합이라 한집에서 지내기 잘 맞아요.`);
+        }
+      }
+    }
+  }
+
+  return { harmony, harmonyText, connector, bestFor, careful, trios };
 }
