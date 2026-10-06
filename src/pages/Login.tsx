@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { Body, Button, Screen } from '../components/ui';
 import { afterAuthPath, getPendingJoin } from '../lib/familyLink';
 import { useAuth } from '../state/AuthState';
+import { BusinessInfo } from './Legal';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -71,6 +72,22 @@ export default function Login() {
         <span className="dim small">아직 계정이 없으신가요?</span>
         <Button label="회원가입" kind="secondary" onPress={() => navigate('/signup')} />
       </div>
+
+      <div className="legal-links" style={{ marginTop: 32 }}>
+        <button type="button" className="link" onClick={() => navigate('/premium')}>
+          플러스 요금 안내
+        </button>
+        <button type="button" className="link" onClick={() => navigate('/legal/terms')}>
+          이용약관
+        </button>
+        <button type="button" className="link" onClick={() => navigate('/legal/refund')}>
+          환불 정책
+        </button>
+        <button type="button" className="link" onClick={() => navigate('/legal/privacy')}>
+          개인정보처리방침
+        </button>
+      </div>
+      <BusinessInfo />
     </Screen>
   );
 }

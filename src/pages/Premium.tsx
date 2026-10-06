@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Body, Button, Header, Screen, Section } from '../components/ui';
 import { ApiError, api, type PlanId } from '../lib/api';
 import { useAuth } from '../state/AuthState';
@@ -98,7 +98,8 @@ export default function Premium() {
       });
   }, [token, setStatus]);
 
-  if (!account || !token) return <Navigate to="/login" replace />;
+  // 로그인 전에도 요금·혜택·환불 안내를 볼 수 있게 한다(결제 심사·처음 온 사람용)
+  if (!account || !token) return <PublicPremium />;
 
   const plans = status?.plans ?? { monthly: { amount: 1900, months: 1 }, yearly: { amount: 19000, months: 12 } };
   const enabled = Boolean(status?.enabled);
@@ -297,6 +298,70 @@ export default function Premium() {
             </p>
           </>
         )}
+        <BusinessInfo />
+      </Screen>
+    </>
+  );
+}
+
+/** 로그인 전에 보는 플러스 안내: 혜택, 요금, 자동 결제·환불 요약, 약관, 사업자 정보 */
+function PublicPremium() {
+  const navigate = useNavigate();
+  return (
+    <>
+      <Header title="하루 한수 플러스" fallback="/login" />
+      <Screen>
+        <h2 className="title" style={{ fontSize: 24, lineHeight: '34px' }}>
+          하루 한수 플러스
+        </h2>
+        <p className="sub" style={{ margin: '8px 0 20px' }}>
+          광고 없이, 가족과 함께 더 자세한 사주 풀이와 숫자를 봐요.
+        </p>
+        <ul className="benefits">
+          {BENEFITS.map((b) => (
+            <li key={b}>
+              <span aria-hidden>✓</span>
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+
+        <Section title="요금">
+          <div className="price-list">
+            <div>
+              <strong>월간</strong>
+              <span>{won(1900)} / 1개월</span>
+            </div>
+            <div>
+              <strong>연간</strong>
+              <span>
+                {won(19000)} / 12개월 <span className="dim small">(월간보다 {won(1900 * 12 - 19000)} 저렴)</span>
+              </span>
+            </div>
+          </div>
+          <ul className="fine-print">
+            <li>카드를 한 번 등록하면 매달(연간은 매년) 같은 날 자동으로 결제돼요. 부가세 포함 가격이에요.</li>
+            <li>언제든 해지할 수 있고, 해지해도 이미 결제한 기간까지는 계속 이용할 수 있어요.</li>
+            <li>결제 후 7일 안에 신청하면 전액 환불해 드려요. 7일이 지난 뒤의 환불은 환불 정책을 따라요.</li>
+          </ul>
+        </Section>
+
+        <div className="stack" style={{ marginTop: 8 }}>
+          <Button label="로그인하고 구독하기" onPress={() => navigate('/login')} />
+          <Button label="회원가입" kind="secondary" onPress={() => navigate('/signup')} />
+        </div>
+
+        <div className="legal-links">
+          <button type="button" className="link" onClick={() => navigate('/legal/terms')}>
+            이용약관
+          </button>
+          <button type="button" className="link" onClick={() => navigate('/legal/refund')}>
+            환불 정책
+          </button>
+          <button type="button" className="link" onClick={() => navigate('/legal/privacy')}>
+            개인정보처리방침
+          </button>
+        </div>
         <BusinessInfo />
       </Screen>
     </>

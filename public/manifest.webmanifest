@@ -1,0 +1,16 @@
+{
+  "name": "하루 한수",
+  "short_name": "하루 한수",
+  "description": "생년월일시로 사주를 보고, 나와 가족에게 맞는 오늘의 숫자를 알려 드려요.",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f0e6",
+  "theme_color": "#f3f0e6",
+  "icons": [
+    { "src": "logo-mark-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "logo-mark-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
