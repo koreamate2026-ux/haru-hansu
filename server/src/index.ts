@@ -15,11 +15,14 @@ const PORT = Number(process.env.PORT ?? 8095);
 // CORS_ORIGIN: 쉼표로 구분된 허용 origin 목록. "*"이면 전부 허용(개발용).
 // 값 하나가 *.vercel.app이면 그 프로젝트의 프리뷰 배포(브랜치마다 주소가 달라짐)도 전부 허용한다.
 const ORIGINS = (process.env.CORS_ORIGIN ?? '*').split(',').map((s) => s.trim());
+// 아이폰(capacitor://localhost)·안드로이드(https://localhost) 앱 안의 화면은 늘 허용한다
+const APP_ORIGINS = ['capacitor://localhost', 'https://localhost'];
 const corsOrigin: cors.CorsOptions['origin'] =
   ORIGINS.includes('*')
     ? true
     : (origin, cb) => {
         if (!origin) return cb(null, true); // 서버 대 서버 호출 등 origin이 없는 요청
+        if (APP_ORIGINS.includes(origin)) return cb(null, true);
         const ok = ORIGINS.some((allowed) => {
           if (allowed.startsWith('*.')) return origin.endsWith(allowed.slice(1));
           return origin === allowed;

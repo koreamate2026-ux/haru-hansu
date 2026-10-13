@@ -5,6 +5,7 @@ import { ApiError, api, type PlanId } from '../lib/api';
 import { useAuth } from '../state/AuthState';
 import { FREE_PERSON_LIMIT, useBilling } from '../state/BillingState';
 import { BusinessInfo } from './Legal';
+import { isNativeApp } from '../lib/platform';
 
 const TOSS_SDK = 'https://js.tosspayments.com/v2/standard';
 
@@ -102,7 +103,8 @@ export default function Premium() {
   if (!account || !token) return <PublicPremium />;
 
   const plans = status?.plans ?? { monthly: { amount: 1900, months: 1 }, yearly: { amount: 19000, months: 12 } };
-  const enabled = Boolean(status?.enabled);
+  // 앱 안에서는 토스 결제를 쓸 수 없어요(스토어 규칙). 스토어 결제를 붙이기 전까지는 막아 둔다
+  const enabled = Boolean(status?.enabled) && !isNativeApp;
 
   const subscribe = async () => {
     if (!agree || busy) return;
@@ -282,7 +284,7 @@ export default function Premium() {
             </label>
 
             <Button
-              label={!enabled ? '결제 준비 중이에요' : busy ? '결제창 여는 중…' : `${won(plans[plan].amount)} 결제하고 시작하기`}
+              label={isNativeApp ? '앱 결제는 곧 열려요' : !enabled ? '결제 준비 중이에요' : busy ? '결제창 여는 중…' : `${won(plans[plan].amount)} 결제하고 시작하기`}
               onPress={subscribe}
               disabled={!enabled || !agree || busy}
             />

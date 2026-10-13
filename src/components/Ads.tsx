@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { isNativeApp } from '../lib/platform';
 import { useBilling } from '../state/BillingState';
 
 /**
@@ -38,7 +39,8 @@ export function AdSenseBanner() {
   const pushed = useRef(false);
   const { loaded, premium } = useBilling();
   // 구독 여부를 모르는 동안에는 광고를 불러오지 않는다(플러스 회원에게 잠깐 보이는 것 방지)
-  const hidden = !loaded || premium;
+  // 앱 안에서는 웹 광고(애드센스)를 쓸 수 없어 숨긴다(앱 광고는 나중에 따로)
+  const hidden = !loaded || premium || isNativeApp;
 
   useEffect(() => {
     if (hidden || !ADSENSE_CLIENT || !ADSENSE_SLOT || pushed.current) return;
@@ -102,12 +104,19 @@ const POPUP_WAIT_SEC = 3;
 /** 내 사주에 들어가기 전에 띄우는 애드핏 광고 팝업. 몇 초 뒤 닫기 버튼이 켜진다 */
 export function AdFitPopup({ onClose, onUpgrade }: { onClose: () => void; onUpgrade?: () => void }) {
   const [left, setLeft] = useState(POPUP_WAIT_SEC);
+  // 앱 안에서는 웹 광고 팝업을 띄우지 않고 바로 넘어간다
+  useEffect(() => {
+    if (isNativeApp) onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (left <= 0) return;
     const t = setTimeout(() => setLeft((n) => n - 1), 1000);
     return () => clearTimeout(t);
   }, [left]);
+
+  if (isNativeApp) return null;
 
   return (
     <div className="sheet-backdrop ad-popup-backdrop" role="dialog" aria-modal="true" aria-label="광고">

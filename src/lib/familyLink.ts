@@ -1,7 +1,8 @@
+import { PUBLIC_WEB_BASE, isNativeApp } from './platform';
 import { KEYS, load, save } from './storage';
 
-/** 초대 링크. 해시 라우터라 #/join/코드 모양이다 */
-export const inviteUrl = (code: string) => `${window.location.origin}${window.location.pathname}#/join/${code}`;
+/** 초대 링크. 해시 라우터라 #/join/코드 모양이다. 앱 안에서는 받는 사람이 열 수 있게 웹 주소로 만든다 */
+export const inviteUrl = (code: string) => `${isNativeApp ? PUBLIC_WEB_BASE : `${window.location.origin}${window.location.pathname}`}#/join/${code}`;
 
 /** 카톡·문자에 붙여 넣을 초대 문구 */
 export function inviteMessage(code: string, groupName: string, personName?: string | null) {
