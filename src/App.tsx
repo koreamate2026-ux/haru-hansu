@@ -3,7 +3,6 @@ import { HashRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate }
 import { TabBar } from './components/ui';
 import About from './pages/About';
 import AddNumber from './pages/AddNumber';
-import DrawEntry from './pages/DrawEntry';
 import Favorites from './pages/Favorites';
 import Legal from './pages/Legal';
 import Login from './pages/Login';
@@ -15,7 +14,6 @@ import Profile from './pages/Profile';
 import Saju from './pages/Saju';
 import Settings from './pages/Settings';
 import Signup from './pages/Signup';
-import Stats from './pages/Stats';
 import ThisWeek from './pages/ThisWeek';
 import TicketNew from './pages/TicketNew';
 import Tickets from './pages/Tickets';
@@ -94,14 +92,12 @@ export default function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="add-number" element={<AddNumber />} />
               <Route path="premium" element={<Premium />} />
-              <Route path="stats" element={<Stats />} />
               <Route path="favorites" element={<Favorites />} />
               <Route path="plus/compat" element={<PlusCompat />} />
               <Route path="plus/family" element={<PlusFamily />} />
               <Route path="plus/favorite" element={<PlusFavorite />} />
               <Route path="legal/:doc" element={<Legal />} />
               <Route path="ticket-new" element={<TicketNew />} />
-              <Route path="draw-entry/:round" element={<DrawEntry />} />
               <Route path="about" element={<About />} />
               <Route path="join/:code" element={<Join />} />
               <Route path="*" element={<Navigate to="/" replace />} />

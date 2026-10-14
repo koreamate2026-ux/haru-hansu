@@ -34,21 +34,21 @@ export default function TicketNew() {
       <Header title="번호 직접 저장" fallback="/tickets" />
       <Screen>
         <div className="round-row">
-          <button type="button" className="icon-btn" onClick={() => setRound((r) => Math.max(1, r - 1))} aria-label="이전 회차">
+          <button type="button" className="icon-btn" onClick={() => setRound((r) => Math.max(1, r - 1))} aria-label="이전 주">
             ‹
           </button>
           <div className="round-center">
             <div className="display" style={{ fontSize: 24 }}>
               제{round}회
             </div>
-            <div className="faint small">{drawDate(round).label} 추첨</div>
+            <div className="faint small">{drawDate(round).label} 주</div>
           </div>
           <button
             type="button"
             className="icon-btn"
             onClick={() => setRound((r) => Math.min(upcomingRound(), r + 1))}
             disabled={round >= upcomingRound()}
-            aria-label="다음 회차"
+            aria-label="다음 주"
           >
             ›
           </button>

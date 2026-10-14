@@ -5,7 +5,6 @@ import { FamilyLinkWizard } from '../components/FamilyLinkWizard';
 import { ApiError, api, type ApiInvite, type ApiMember } from '../lib/api';
 import { copyText, inviteMessage, inviteUrl } from '../lib/familyLink';
 import { REL_CHOICES, REL_INFO, type FamilyRel } from '../lib/compatDetail';
-import { DEFAULT_DRAW_API } from '../lib/draws';
 import { useRelations } from '../lib/relations';
 import { SOLAR_ADJUST_MINUTES, setTrueSolarTime } from '../lib/saju';
 import { KEYS, save } from '../lib/storage';
@@ -352,7 +351,7 @@ function PlusSection() {
             ? `이용 중이에요. ${endLabel}까지 이용하고 해지돼요.`
             : `이용 중이에요. 다음 결제일은 ${endLabel}이에요.`
           : status?.enabled
-            ? '월 1,900원으로 광고 없이, 자세한 사주 풀이와 번호 기록 분석까지. 내가 만든 가족 그룹은 인원 제한도 없어요.'
+            ? '월 1,900원으로 광고 없이, 자세한 사주 풀이와 가족 궁합까지. 내가 만든 가족 그룹은 인원 제한도 없어요.'
             : '광고 없이 쓰는 월 1,900원 구독을 준비하고 있어요.'}
       </Body>
       <Button label={premium ? '구독 관리' : '플러스 알아보기'} kind={premium ? 'secondary' : 'primary'} onPress={() => navigate('/premium')} />
@@ -379,7 +378,6 @@ export default function Settings() {
       window.alert(e instanceof ApiError ? e.message : '처리하지 못했어요.');
     }
   };
-  const [apiBase, setApiBase] = useState(settings.drawApiBase);
 
   const onReset = () => {
     if (window.confirm('모든 정보를 지울까요?\n등록한 사람, 저장한 번호, 설정이 이 브라우저에서 모두 지워져요.')) {
@@ -508,24 +506,6 @@ export default function Settings() {
         </Body>
       </Section>
 
-      <Section title="당첨번호 조회 주소">
-        <Body dim small style={{ marginBottom: 12 }}>
-          비워두면 기본 주소로 조회해요. 조회가 막히면 직접 운영하는 중계 서버 주소를 넣을 수 있어요. 주소 끝에 회차 번호가 붙어요.
-        </Body>
-        <input
-          className="input small-text"
-          type="url"
-          value={apiBase}
-          onChange={(e) => setApiBase(e.target.value)}
-          onBlur={() => updateSettings({ drawApiBase: apiBase.trim() })}
-          placeholder={DEFAULT_DRAW_API}
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          aria-label="당첨번호 조회 주소"
-        />
-      </Section>
-
       <PlusSection />
 
       <FamilySync />
@@ -546,7 +526,7 @@ export default function Settings() {
           개인정보처리방침
         </button>
         <Body dim small style={{ marginTop: 8 }}>
-          가족 계정에 로그인해야 사람·번호함을 볼 수 있어요. 아이디·이름·가족 그룹 이름은 서버에 저장되고, 당첨번호를 조회할 때만 회차 번호가 조회 주소로 전송돼요.
+          가족 계정에 로그인해야 사람·번호함을 볼 수 있어요. 아이디·이름·가족 그룹 이름과 등록한 사람 정보는 서버에 저장돼요.
         </Body>
       </Section>
 

@@ -1,15 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ApiError, api, type ApiPerson, type ApiPersonInput, type ApiTicket } from '../lib/api';
-import { fetchDraw } from '../lib/draws';
 import type { DreamKey } from '../lib/luckyNumbers';
 import { todayKST } from '../lib/rounds';
 import { remapRelationId, syncRelations } from '../lib/relations';
 import { computeChart, isTrueSolarTime, setTrueSolarTime, type SajuChart } from '../lib/saju';
 import { KEYS, clearAll, load, save } from '../lib/storage';
-import type { DrawResult, Profile, SavedTicket, Settings } from '../lib/types';
+import type { Profile, SavedTicket, Settings } from '../lib/types';
 import { useAuth } from './AuthState';
 
-const DEFAULT_SETTINGS: Settings = { drawApiBase: '' };
+const DEFAULT_SETTINGS: Settings = {};
 
 function todayKey(): string {
   const t = todayKST();
@@ -81,9 +80,6 @@ interface AppStateValue {
   addTicket: (t: SavedTicket) => void;
   removeTicket: (id: string) => void;
   hasTicket: (round: number, numbers: number[]) => boolean;
-  draws: Record<number, DrawResult>;
-  loadDraw: (round: number) => Promise<DrawResult | null>;
-  saveManualDraw: (d: DrawResult) => void;
   settings: Settings;
   updateSettings: (patch: Partial<Settings>) => void;
   todayDream: DreamKey;
@@ -113,7 +109,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [profiles, setProfiles] = useState<Profile[]>(() => load<Profile[]>(KEYS.profiles, []));
   const [activeId, setActiveId] = useState<string | null>(() => initialActiveId(load<Profile[]>(KEYS.profiles, [])));
   const [tickets, setTickets] = useState<SavedTicket[]>(() => load<SavedTicket[]>(KEYS.tickets, []));
-  const [draws, setDraws] = useState<Record<number, DrawResult>>(() => load<Record<number, DrawResult>>(KEYS.draws, {}));
   const [settings, setSettings] = useState<Settings>(() => ({ ...DEFAULT_SETTINGS, ...load<Partial<Settings>>(KEYS.settings, {}) }));
   const [dreamMap, setDreamMap] = useState<DreamMap>(() => load<DreamMap>(KEYS.dream, {}));
 
@@ -350,23 +345,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [tickets],
   );
 
-  const storeDraw = useCallback((d: DrawResult) => {
-    setDraws((prev) => {
-      const next = { ...prev, [d.round]: d };
-      save(KEYS.draws, next);
-      return next;
-    });
-  }, []);
-
-  const loadDraw = useCallback(
-    async (round: number) => {
-      if (draws[round]) return draws[round];
-      const d = await fetchDraw(round, settings.drawApiBase);
-      if (d) storeDraw(d);
-      return d;
-    },
-    [draws, settings.drawApiBase, storeDraw],
-  );
 
   const updateSettings = useCallback((patch: Partial<Settings>) => {
     setSettings((prev) => {
@@ -381,7 +359,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setProfiles([]);
     setActiveId(null);
     setTickets([]);
-    setDraws({});
     setSettings(DEFAULT_SETTINGS);
     setDreamMap({});
     // 서버와 동기화 중이었다면, 지운 자리에 서버 데이터를 다시 채운다
@@ -399,9 +376,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     addTicket,
     removeTicket,
     hasTicket,
-    draws,
-    loadDraw,
-    saveManualDraw: storeDraw,
     settings,
     updateSettings,
     todayDream,

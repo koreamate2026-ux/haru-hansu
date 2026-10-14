@@ -2,7 +2,7 @@ import { ELEMENTS, ELEMENT_INFO, numberElement, withJosa } from './elements';
 import { hashString, seededRandom } from './random';
 import { drawDate } from './rounds';
 import { dayGanzhi, type Pillar, type SajuChart } from './saju';
-import type { DrawResult, Element, Profile } from './types';
+import type { Element, Profile } from './types';
 
 export interface Recommendation {
   round: number;
@@ -100,25 +100,11 @@ function explain(chart: SajuChart, drawPillar: Pillar, numbers: number[]): strin
   }
   const d = ELEMENT_INFO[drawPillar.stemElement];
   reasons.push(
-    `추첨하는 토요일은 ${d.name} 기운이 강한 날이라, ${d.name} 번호가 조금 더 잘 나오게 했어요.`,
+    `이번 주 토요일은 ${d.name} 기운이 강한 날이라, ${d.name} 번호가 조금 더 잘 나오게 했어요.`,
   );
   if (chart.excessive.length) {
     const names = chart.excessive.map((e) => ELEMENT_INFO[e].name).join('·');
     reasons.push(`${names} 기운은 이미 넘치게 타고나서, ${names} 번호는 덜 나오게 했어요.`);
   }
   return reasons;
-}
-
-export interface MatchResult {
-  matched: number[];
-  bonusMatched: boolean;
-  rank: 1 | 2 | 3 | 4 | 5 | null;
-}
-
-export function checkTicket(numbers: number[], draw: DrawResult): MatchResult {
-  const matched = numbers.filter((n) => draw.numbers.includes(n));
-  const bonusMatched = numbers.includes(draw.bonus);
-  const c = matched.length;
-  const rank = c === 6 ? 1 : c === 5 && bonusMatched ? 2 : c === 5 ? 3 : c === 4 ? 4 : c === 3 ? 5 : null;
-  return { matched, bonusMatched, rank };
 }

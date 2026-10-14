@@ -230,7 +230,7 @@ export function CompatBody() {
               <NumberStories stories={family.stories} />
             </Section>
 
-            <p className="notice">사주 풀이와 숫자는 재미로 보는 참고용이에요. 어떤 숫자든 당첨 확률은 같아요.</p>
+            <p className="notice">사주 풀이와 숫자는 재미로 보는 참고용이에요.</p>
             <Button label="함께 볼 사람 추가하기" kind="secondary" onPress={() => setWizard(true)} />
           </>
         )}

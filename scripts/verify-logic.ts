@@ -3,7 +3,7 @@
  * 만세력 결과를 신뢰할 수 있는 만세력(예: 한국천문연구원 음양력 변환, 검증된 만세력 사이트)과 비교해 보세요.
  */
 import { computeChart, toSolar, BirthDateError } from '../src/lib/saju';
-import { recommend, checkTicket } from '../src/lib/lotto';
+import { recommend } from '../src/lib/lotto';
 import { dailyFortune } from '../src/lib/fortune';
 import { latestDrawnRound, drawDate } from '../src/lib/rounds';
 import { numberElement, ELEMENTS } from '../src/lib/elements';
@@ -50,8 +50,8 @@ eq('2월 30일은 오류', threw, true);
 // 시간 모름 → 시주 없음, 오행 합계 7
 const noTime = computeChart(mk({ hour: null }));
 eq('시간 모름 → 시주 null', noTime.pillars.time, null);
-eq('시간 모름 → 합계 7', noTime.total, 7);
-eq('시간 있음 → 합계 9', computeChart(mk({})).total, 9);
+eq('시간 모름 → 겉 글자 합계 7', Object.values(noTime.visibleCounts).reduce((a, b) => a + b, 0), 7);
+eq('시간 있음 → 겉 글자 합계 9', Object.values(computeChart(mk({})).visibleCounts).reduce((a, b) => a + b, 0), 9);
 
 // 2. 회차 계산
 eq('2025-12-13 추첨 = 1202회', drawDate(1202).label, '2025.12.13');
@@ -84,13 +84,6 @@ console.log('      사주:', chart.pillars.year.stem + chart.pillars.year.branch
 console.log('      추천 예시:', r1.numbers.join(', '));
 r1.reasons.forEach((s) => console.log('      -', s));
 
-// 5. 당첨 비교
-const draw = { round: 1, date: '', numbers: [1, 2, 3, 4, 5, 6], bonus: 7, source: 'manual' as const };
-eq('1등', checkTicket([1, 2, 3, 4, 5, 6], draw).rank, 1);
-eq('2등', checkTicket([1, 2, 3, 4, 5, 7], draw).rank, 2);
-eq('3등', checkTicket([1, 2, 3, 4, 5, 9], draw).rank, 3);
-eq('5등', checkTicket([1, 2, 3, 40, 41, 42], draw).rank, 5);
-eq('낙첨', checkTicket([1, 2, 40, 41, 42, 43], draw).rank, null);
 
 // 6. 오늘의 운세
 const f = dailyFortune(p, chart, Date.UTC(2026, 8, 24, 3));
