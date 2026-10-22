@@ -8,6 +8,8 @@ import { REL_CHOICES, REL_INFO, type FamilyRel } from '../lib/compatDetail';
 import { useRelations } from '../lib/relations';
 import { SOLAR_ADJUST_MINUTES, setTrueSolarTime } from '../lib/saju';
 import { KEYS, save } from '../lib/storage';
+import { NOTIFY_TIMES, getNotifySettings, notifyPermission, sendTestNotification, setDailyNotify, type NotifyPermission, type NotifySettings } from '../lib/notifications';
+import { isNativeApp } from '../lib/platform';
 import { useApp } from '../state/AppState';
 import { useAuth } from '../state/AuthState';
 import { BusinessInfo } from './Legal';
@@ -359,6 +361,72 @@ function PlusSection() {
   );
 }
 
+/** 매일 알림(앱에서만) */
+function NotifySection() {
+  const { activeProfile, activeChart } = useApp();
+  const [s, setS] = useState(getNotifySettings);
+  const [perm, setPerm] = useState<NotifyPermission>('prompt');
+  const [msg, setMsg] = useState('');
+  useEffect(() => {
+    void notifyPermission().then(setPerm);
+  }, []);
+  if (!isNativeApp) return null;
+
+  const apply = async (next: Partial<NotifySettings>) => {
+    setMsg('');
+    const ok = await setDailyNotify(next, activeProfile, activeChart);
+    setS(getNotifySettings());
+    setPerm(await notifyPermission());
+    if (!ok) setMsg('알림 권한이 꺼져 있어요. 휴대폰 설정 > 하루 한수 > 알림에서 허용해 주세요.');
+  };
+
+  return (
+    <Section title="알림">
+      <div className="switch-row">
+        <span>매일 오늘의 숫자 알림</span>
+        <Switch value={s.enabled} label="매일 오늘의 숫자 알림" onChange={(on) => void apply({ enabled: on })} />
+      </div>
+      {s.enabled ? (
+        <div className="switch-row">
+          <span>받을 시간</span>
+          <select
+            className="notify-time"
+            value={s.hour}
+            onChange={(e) => void apply({ hour: Number(e.target.value), minute: 0 })}
+            aria-label="알림 받을 시간"
+          >
+            {NOTIFY_TIMES.map((t) => (
+              <option key={t.hour} value={t.hour}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+      <Body dim small style={{ marginTop: 8 }}>
+        그날의 운세 한 줄과 함께 알려 드려요.{perm === 'denied' ? ' 지금은 휴대폰 설정에서 알림이 꺼져 있어요.' : ''}
+      </Body>
+      <button
+        type="button"
+        className="text-btn"
+        style={{ marginTop: 6 }}
+        onClick={async () => {
+          const ok = await sendTestNotification(activeProfile, activeChart);
+          setPerm(await notifyPermission());
+          setMsg(ok ? '5초 뒤에 알림이 와요. 앱을 잠시 닫아 두면 잘 보여요.' : '알림 권한이 꺼져 있어요. 휴대폰 설정 > 하루 한수 > 알림에서 허용해 주세요.');
+        }}
+      >
+        지금 한 번 받아 보기
+      </button>
+      {msg ? (
+        <p className="small" style={{ margin: '6px 0 0', color: 'var(--gold)' }} role="status">
+          {msg}
+        </p>
+      ) : null}
+    </Section>
+  );
+}
+
 export default function Settings() {
   const navigate = useNavigate();
   const { profiles, activeProfile, setActiveProfile, settings, updateSettings, resetAll, synced, reload } = useApp();
@@ -506,6 +574,8 @@ export default function Settings() {
         </Body>
       </Section>
 
+      <NotifySection />
+
       <PlusSection />
 
       <FamilySync />
@@ -515,6 +585,9 @@ export default function Settings() {
       <Section title="정보">
         <button type="button" className="list-row" onClick={() => navigate('/about')}>
           번호를 고르는 방법
+        </button>
+        <button type="button" className="list-row" onClick={() => navigate('/support')}>
+          고객지원 · 자주 묻는 질문
         </button>
         <button type="button" className="list-row" onClick={() => navigate('/legal/terms')}>
           이용약관

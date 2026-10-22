@@ -677,3 +677,13 @@ input { font: inherit; }
 .price-list { display: flex; flex-direction: column; gap: 8px; }
 .price-list > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-variant-numeric: tabular-nums; }
 .fine-print { margin: 12px 0 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 19px; color: var(--text-dim); }
+
+/* 고객지원 */
+.support-contact { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); margin-bottom: 8px; }
+.support-mail { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 700; word-break: break-all; }
+.faq { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.faq-item { border-bottom: 1px solid var(--line); }
+.faq-q { all: unset; box-sizing: border-box; width: 100%; display: flex; justify-content: space-between; gap: 12px; padding: 12px 2px; cursor: pointer; font-weight: 700; font-size: 15px; line-height: 22px; }
+.faq-q:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.faq-a { display: flex; flex-direction: column; gap: 6px; padding: 0 2px 14px; }
+.notify-time { font: inherit; font-size: 14px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }

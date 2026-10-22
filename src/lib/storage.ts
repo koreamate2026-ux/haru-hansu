@@ -17,6 +17,8 @@ export const KEYS = {
   pendingJoin: 'pendingJoin',
   /** 가족 궁합용 관계(보는 사람마다 다르니 이 기기에만 둔다) */
   relations: 'relations',
+  /** 매일 알림 설정(이 기기) */
+  notify: 'notify',
 } as const;
 
 /** 브라우저 저장소(localStorage). 개인 정보 보호 모드 등에서 막히면 기본값으로 동작 */

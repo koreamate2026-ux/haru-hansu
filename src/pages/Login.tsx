@@ -86,6 +86,9 @@ export default function Login() {
         <button type="button" className="link" onClick={() => navigate('/legal/privacy')}>
           개인정보처리방침
         </button>
+        <button type="button" className="link" onClick={() => navigate('/support')}>
+          고객지원
+        </button>
       </div>
       <BusinessInfo />
     </Screen>

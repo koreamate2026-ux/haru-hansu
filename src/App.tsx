@@ -18,9 +18,12 @@ import ThisWeek from './pages/ThisWeek';
 import TicketNew from './pages/TicketNew';
 import Tickets from './pages/Tickets';
 import Join from './pages/Join';
+import Support from './pages/Support';
 import { SajuShareGate } from './components/SajuShareGate';
 import { getPendingJoin } from './lib/familyLink';
-import { AppStateProvider } from './state/AppState';
+import { AppStateProvider, useApp } from './state/AppState';
+import { isNativeApp } from './lib/platform';
+import { rescheduleDaily } from './lib/notifications';
 import { AuthStateProvider, useAuth } from './state/AuthState';
 import { BillingStateProvider } from './state/BillingState';
 import { FavoritesStateProvider } from './state/FavoritesState';
@@ -59,6 +62,16 @@ function PendingJoin() {
   return null;
 }
 
+/** 앱 안에서는 열 때마다(그리고 보는 사람이 바뀌면) 앞으로 14일치 매일 알림을 다시 채운다 */
+function NotifyScheduler() {
+  const { activeProfile, activeChart } = useApp();
+  useEffect(() => {
+    if (!isNativeApp) return;
+    void rescheduleDaily(activeProfile, activeChart).catch(() => {});
+  }, [activeProfile, activeChart]);
+  return null;
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -78,6 +91,7 @@ export default function App() {
           <BillingReturn />
           <PendingJoin />
           <SajuShareGate />
+          <NotifyScheduler />
           <div className="app">
             <Routes>
               <Route element={<TabsLayout />}>
@@ -100,6 +114,7 @@ export default function App() {
               <Route path="ticket-new" element={<TicketNew />} />
               <Route path="about" element={<About />} />
               <Route path="join/:code" element={<Join />} />
+              <Route path="support" element={<Support />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>

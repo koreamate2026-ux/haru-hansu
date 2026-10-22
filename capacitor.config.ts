@@ -13,6 +13,13 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: 'never',
   },
+  plugins: {
+    LocalNotifications: {
+      // 안드로이드 상단바 알림 아이콘(흰색 실루엣). res/drawable-*/ic_stat_notify.png
+      smallIcon: 'ic_stat_notify',
+      iconColor: '#8A5F1A',
+    },
+  },
   android: {
     // 사이트와 같은 https 주소 체계로 열어서 쿠키·저장소가 웹과 같은 규칙으로 동작
     allowMixedContent: false,

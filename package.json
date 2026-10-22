@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && tsx scripts/static-pages.ts",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "tsx scripts/verify-logic.ts",
@@ -17,6 +17,7 @@
     "@capacitor/android": "8.5.2",
     "@capacitor/core": "8.5.2",
     "@capacitor/ios": "8.5.2",
+    "@capacitor/local-notifications": "8.3.1",
     "lunar-javascript": "^1.7.7",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
